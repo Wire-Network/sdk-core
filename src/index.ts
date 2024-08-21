@@ -4,7 +4,7 @@ export * from './chain'
 // utils
 export * from './serializer'
 export * from './base58'
-export {isInstanceOf} from './utils'
+export * from './utils'
 
 // api
 export * from './api/client'

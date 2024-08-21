@@ -2,18 +2,18 @@
     "name": "@wire-sdk/core",
     "description": "Library for working with Wire powered blockchains.",
     "version": "1.1.0",
-    "homepage": "https://github.com/wharfkit/antelope",
+    "homepage": "https://gitea.gitgo.app/Wire/sdk-core",
     "license": "BSD-3-Clause-No-Military-License",
-    "main": "lib/antelope.js",
-    "module": "lib/antelope.m.js",
-    "types": "lib/antelope.d.ts",
+    "main": "core/core.js",
+    "module": "core/core.m.js",
+    "types": "core/core.d.ts",
     "browser": {
         "buffer": false,
         "crypto": false
     },
     "sideEffects": false,
     "files": [
-        "lib/*",
+        "core/*",
         "src/*"
     ],
     "scripts": {
