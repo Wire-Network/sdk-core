@@ -1,8 +1,9 @@
-/** Supported Antelope/EOSIO curve types. */
+/** Supported Wire curve types. */
 export enum KeyType {
     K1 = 'K1',
     R1 = 'R1',
     WA = 'WA',
+    EM = 'EM',
 }
 
 export namespace KeyType {
@@ -14,6 +15,8 @@ export namespace KeyType {
                 return 1
             case KeyType.WA:
                 return 2
+            case KeyType.EM:
+                return 3
             default:
                 throw new Error(`Unknown curve type: ${value}`)
         }
@@ -32,6 +35,8 @@ export namespace KeyType {
                 return KeyType.R1
             case 2:
                 return KeyType.WA
+            case 3:
+                return KeyType.EM
             default:
                 throw new Error('Unknown curve type')
         }

@@ -34,7 +34,8 @@ export class PublicKey implements ABISerializableObject {
                 throw new Error('Invalid public key string')
             }
             const type = KeyType.from(parts[1])
-            const size = type === KeyType.K1 || type === KeyType.R1 ? 33 : undefined
+            const size =
+                type === KeyType.K1 || type === KeyType.R1 || type === KeyType.EM ? 33 : undefined
             const data = Base58.decodeRipemd160Check(parts[2], size, type)
             return new PublicKey(type, data)
         } else if (value.length >= 50) {
@@ -75,11 +76,11 @@ export class PublicKey implements ABISerializableObject {
 
     /**
      * Return Antelope/EOSIO legacy (`EOS<base58data>`) formatted key.
-     * @throws If the key type isn't `K1`
+     * @throws If the key type isn't `K1` or 'EM'.
      */
     toLegacyString(prefix = 'EOS') {
-        if (this.type !== KeyType.K1) {
-            throw new Error('Unable to create legacy formatted string for non-K1 key')
+        if (this.type !== KeyType.K1 && this.type !== KeyType.EM) {
+            throw new Error('Unable to create legacy formatted string for non-K1/EM key')
         }
         return `${prefix}${Base58.encodeRipemd160Check(this.data)}`
     }

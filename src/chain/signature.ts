@@ -32,7 +32,11 @@ export class Signature implements ABISerializableObject {
             const data = new Uint8Array(1 + 32 + 32)
             let recid = value.recid
             const type = KeyType.from(value.type)
-            if (value.type === KeyType.K1 || value.type === KeyType.R1) {
+            if (
+                value.type === KeyType.K1 ||
+                value.type === KeyType.R1 ||
+                value.type === KeyType.EM
+            ) {
                 recid += 31
             }
             data[0] = recid
@@ -49,7 +53,8 @@ export class Signature implements ABISerializableObject {
                 throw new Error('Invalid signature string')
             }
             const type = KeyType.from(parts[1])
-            const size = type === KeyType.K1 || type === KeyType.R1 ? 65 : undefined
+            const size =
+                type === KeyType.K1 || type === KeyType.R1 || type === KeyType.EM ? 65 : undefined
             const data = Base58.decodeRipemd160Check(parts[2], size, type)
             return new Signature(type, data)
         } else {

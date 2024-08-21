@@ -47,7 +47,11 @@ export class PrivateKey {
                 isInstanceOf(error, Base58.DecodingError) &&
                 error.code === Base58.ErrorCode.E_CHECKSUM
             ) {
-                const type = string.startsWith('PVT_R1') ? KeyType.R1 : KeyType.K1
+                const type = string.startsWith('PVT_R1')
+                    ? KeyType.R1
+                    : string.startsWith('PVT_EM')
+                    ? KeyType.EM
+                    : KeyType.K1
                 const data = new Bytes(error.info.data)
                 if (data.length === 33) {
                     data.dropFirst()
@@ -69,7 +73,10 @@ export class PrivateKey {
 
     /** @internal */
     constructor(type: KeyType, data: Bytes) {
-        if ((type === KeyType.K1 || type === KeyType.R1) && data.length !== 32) {
+        if (
+            (type === KeyType.K1 || type === KeyType.R1 || type === KeyType.EM) &&
+            data.length !== 32
+        ) {
             throw new Error('Invalid private key length')
         }
         this.type = type
@@ -113,11 +120,11 @@ export class PrivateKey {
 
     /**
      * Return WIF representation of this private key
-     * @throws If the key type isn't K1.
+     * @throws If the key type isn't K1/EM.
      */
     toWif() {
-        if (this.type !== KeyType.K1) {
-            throw new Error('Unable to generate WIF for non-k1 key')
+        if (this.type !== KeyType.K1 && this.type !== KeyType.EM) {
+            throw new Error('Unable to generate WIF for non-k1/em key')
         }
         return Base58.encodeCheck(Bytes.from([0x80]).appending(this.data))
     }
@@ -151,6 +158,7 @@ function decodeKey(value: string) {
         switch (type) {
             case KeyType.K1:
             case KeyType.R1:
+            case KeyType.EM:
                 size = 32
                 break
         }

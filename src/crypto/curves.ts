@@ -9,7 +9,7 @@ const curves: {[type: string]: ec} = {}
 export function getCurve(type: string): ec {
     let rv = curves[type]
     if (!rv) {
-        if (type === 'K1') {
+        if (type === 'K1' || type === 'EM') {
             rv = curves[type] = new ec('secp256k1')
         } else if (type === 'R1') {
             rv = curves[type] = new ec('p256')
