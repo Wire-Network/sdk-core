@@ -12,7 +12,13 @@
         "sourceMap": true,
         "strict": true,
         "useUnknownInCatchVariables": false,
-        "target": "es2020"
+        "target": "es2020",
+        "paths": {
+            // "@wire-sdk/core": ["../sdk-core"],
+            "@wire-sdk/session": ["../sdk-session"],
+            "@wire-sdk/account": ["../sdk-account"],
+            "@wire-sdk/contract": ["../sdk-contract"],
+        },
     },
     "include": ["src/**/*"]
 }

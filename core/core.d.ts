@@ -1,5 +1,5 @@
 /**
- * @wharfkit/antelope v1.1.0
+ * @wire-sdk/core v1.1.0
  * https://gitea.gitgo.app/Wire/sdk-core
  *
  * @license
@@ -1516,7 +1516,7 @@ declare function isInstanceOf<T extends {
  */
 declare function addressToWireName(address: string): string;
 
-type Fetch = (input: any, init?: any) => Promise<any>;
+type Fetch$1 = (input: any, init?: any) => Promise<any>;
 /** Response to an API call.  */
 interface APIResponse {
     json?: any;
@@ -1542,7 +1542,7 @@ interface FetchProviderOptions {
      * Fetch instance, must be provided in non-browser environments.
      * You can use the node-fetch package in Node.js.
      */
-    fetch?: Fetch;
+    fetch?: Fetch$1;
     /**
      * Headers that will be applied to every request
      * */
@@ -1551,7 +1551,7 @@ interface FetchProviderOptions {
 /** Default provider that uses the Fetch API to call a single node. */
 declare class FetchProvider implements APIProvider {
     readonly url: string;
-    readonly fetch: Fetch;
+    readonly fetch: Fetch$1;
     readonly headers: Record<string, string>;
     constructor(url: string, options?: FetchProviderOptions);
     call(args: {
@@ -2589,4 +2589,291 @@ declare class P2PClient {
     private emit;
 }
 
-export { ABI, ABIDecoder, ABIDef, ABIEncoder, ABISerializable, ABISerializableConstructor, ABISerializableObject, ABISerializableType, types$1 as API, APIClient, APIClientOptions, APIError, APIErrorData, APIErrorDetail, APIMethods, APIProvider, APIResponse, Action, ActionFields, ActionType, AnyAction, AnyInt, AnyTransaction, AnyVariant, Asset, AssetType, Authority, AuthorityType, Base58, Blob, BlobType, BlockId, BlockIdType, BlockTimestamp, Bytes, BytesEncoding, BytesType, ChainAPI, Checksum160, Checksum160Type, Checksum256, Checksum256Type, Checksum512, Checksum512Type, CompressionType, DivisionBehavior, ExtendedAsset, ExtendedAssetType, ExtendedSymbol, ExtendedSymbolType, FetchProvider, FetchProviderOptions, Float128, Float128Type, Float32, Float32Type, Float64, Float64Type, HistoryAPI, Int, Int128, Int128Type, Int16, Int16Type, Int32, Int32Type, Int64, Int64Type, Int8, Int8Type, KeyType, KeyWeight, Name, NameType, OverflowBehavior, types as P2P, P2PClient, P2PClientOptions, P2PDataHandler, P2PErrorHandler, P2PEventMap, P2PHandler, P2PMessageHandler, P2PProvider, PackedTransaction, PackedTransactionType, PermissionLevel, PermissionLevelType, PermissionLevelWeight, PrivateKey, PrivateKeyType, PublicKey, PublicKeyType, Serializer, Signature, SignatureType, SignedTransaction, SignedTransactionFields, SignedTransactionType, SimpleEnvelopeP2PProvider, Struct, StructConstructor, TimePoint, TimePointSec, TimePointType, Transaction, TransactionExtension, TransactionFields, TransactionHeader, TransactionHeaderFields, TransactionHeaderType, TransactionReceipt, TransactionType, TypeAlias, UInt128, UInt128Type, UInt16, UInt16Type, UInt32, UInt32Type, UInt64, UInt64Type, UInt8, UInt8Type, VarInt, VarIntType, VarUInt, VarUIntType, Variant, VariantConstructor, WaitWeight, Weight, addressToWireName, arrayEquals, arrayEquatableEquals, arrayToHex, hexToArray, isInstanceOf, secureRandom };
+/**
+ * Cancelable promises
+ *
+ * https://stackoverflow.com/questions/46461801/possible-to-add-a-cancel-method-to-promise-in-typescript/46464377#46464377
+ */
+declare class Canceled extends Error {
+    silent: boolean;
+    constructor(reason: any, silent?: boolean);
+}
+interface Cancelable<T> extends Promise<T> {
+    cancel(reason?: string, silent?: boolean): Cancelable<T>;
+}
+declare function cancelable<T>(promise: Promise<T>, onCancel?: (canceled: Canceled) => void): Cancelable<T>;
+
+declare class ExplorerDefinition extends Struct {
+    prefix: string;
+    suffix: string;
+    url(id: string): string;
+}
+
+type Fetch = (input: any, init?: any) => Promise<any>;
+type LogoType = Logo | {
+    dark: string;
+    light: string;
+} | string;
+type ExplorerDefinitionType = ExplorerDefinition | {
+    prefix: string;
+    suffix: string;
+    url?: (id: string) => string;
+};
+type ChainDefinitionType = ChainDefinition | {
+    id: Checksum256Type;
+    url: string;
+    explorer?: ExplorerDefinitionType;
+    logo?: LogoType;
+};
+type LocaleDefinitions = Record<string, any>;
+
+declare class Logo extends Struct {
+    dark: string;
+    light: string;
+    static from(data: LogoType): Logo;
+    getVariant(variant: 'dark' | 'light'): string | undefined;
+    toString(): string;
+}
+
+interface ChainDefinitionArgs {
+    id: Checksum256Type;
+    url: string;
+    logo?: LogoType;
+    explorer?: ExplorerDefinitionType;
+    accountDataType?: typeof AccountObject;
+}
+/**
+ * The information required to interact with a given chain.
+ */
+declare class ChainDefinition<AccountDataType extends AccountObject = AccountObject> {
+    /**
+     * The chain ID.
+     */
+    id: Checksum256;
+    /**
+     * The base URL of the chain's API endpoint (e.g. https://jungle4.greymass.com).
+     */
+    url: string;
+    /**
+     * The absolute URL(s) to the chain's logo.
+     */
+    logo?: LogoType;
+    /**
+     * The explorer definition for the chain.
+     */
+    explorer?: ExplorerDefinitionType;
+    /**
+     * The account data type for the chain.
+     */
+    accountDataType?: typeof AccountObject;
+    constructor(data: ChainDefinitionArgs);
+    static from<AccountDataType extends AccountObject = AccountObject>(data: ChainDefinitionArgs): ChainDefinition<AccountDataType>;
+    get name(): string;
+    getLogo(): Logo | undefined;
+    equals(def: ChainDefinitionType): boolean;
+}
+/**
+ * A list of string-based chain names to assist autocompletion
+ */
+type ChainIndices = 'EOS' | 'FIO' | 'FIOTestnet' | 'Jungle4' | 'KylinTestnet' | 'Libre' | 'LibreTestnet' | 'Proton' | 'ProtonTestnet' | 'Telos' | 'TelosTestnet' | 'WAX' | 'WAXTestnet' | 'UX';
+/**
+ * List of human readable chain names based on the ChainIndices type.
+ */
+declare const ChainNames: Record<ChainIndices, string>;
+declare class TelosAccountVoterInfo extends AccountVoterInfo {
+    last_stake: Int64;
+}
+declare class TelosAccountObject extends AccountObject {
+    voter_info?: TelosAccountVoterInfo;
+}
+declare class WAXAccountVoterInfo extends AccountVoterInfo {
+    unpaid_voteshare: Float64;
+    unpaid_voteshare_last_updated: TimePoint;
+    unpaid_voteshare_change_rate: Float64;
+    last_claim_time: TimePoint;
+}
+declare class WAXAccountObject extends AccountObject {
+    voter_info?: WAXAccountVoterInfo;
+}
+/**
+ * An exported list of ChainDefinition entries for select chains.
+ */
+declare namespace Chains {
+    const EOS: ChainDefinition<AccountObject>;
+    const FIO: ChainDefinition<AccountObject>;
+    const FIOTestnet: ChainDefinition<AccountObject>;
+    const Jungle4: ChainDefinition<AccountObject>;
+    const KylinTestnet: ChainDefinition<AccountObject>;
+    const Libre: ChainDefinition<AccountObject>;
+    const LibreTestnet: ChainDefinition<AccountObject>;
+    const Proton: ChainDefinition<AccountObject>;
+    const ProtonTestnet: ChainDefinition<AccountObject>;
+    const Telos: ChainDefinition<TelosAccountObject>;
+    const TelosTestnet: ChainDefinition<TelosAccountObject>;
+    const WAX: ChainDefinition<WAXAccountObject>;
+    const WAXTestnet: ChainDefinition<WAXAccountObject>;
+    const UX: ChainDefinition<AccountObject>;
+}
+/**
+ * A list of chain IDs and their ChainIndices for reference lookups
+ */
+declare const chainIdsToIndices: Map<Checksum256Type, ChainIndices>;
+/**
+ * A list of known chain IDs and their logos.
+ */
+declare const chainLogos: Map<Checksum256Type, LogoType>;
+
+interface PowerUpStateOptions {
+    timestamp?: TimePointType;
+    virtual_block_cpu_limit?: UInt64;
+    virtual_block_net_limit?: UInt64;
+}
+
+declare abstract class PowerUpStateResource extends Struct {
+    version: UInt8;
+    weight: Int64;
+    weight_ratio: Int64;
+    assumed_stake_weight: Int64;
+    initial_weight_ratio: Int64;
+    target_weight_ratio: Int64;
+    initial_timestamp: TimePointSec;
+    target_timestamp: TimePointSec;
+    exponent: Float64;
+    decay_secs: UInt32;
+    min_price: Asset;
+    max_price: Asset;
+    utilization: Int64;
+    adjusted_utilization: Int64;
+    utilization_timestamp: TimePointSec;
+    readonly default_block_cpu_limit: UInt64;
+    readonly default_block_net_limit: UInt64;
+    abstract per_day(options?: PowerUpStateOptions): number;
+    get allocated(): number;
+    get reserved(): BN;
+    get symbol(): Asset.Symbol;
+    cast(): {
+        adjusted_utilization: number;
+        decay_secs: number;
+        exponent: number;
+        utilization: number;
+        utilization_timestamp: number;
+        weight: BN;
+        weight_ratio: number;
+    };
+    utilization_increase(sample: UInt128, frac: any): number;
+    price_function(utilization: number): number;
+    price_integral_delta(start_utilization: number, end_utilization: number): number;
+    fee(utilization_increase: any, adjusted_utilization: any): number;
+    determine_adjusted_utilization(options?: PowerUpStateOptions): number;
+}
+
+declare class PowerUpStateResourceCPU extends PowerUpStateResource {
+    per_day: (options?: PowerUpStateOptions) => number;
+    ms_per_day(options?: PowerUpStateOptions): number;
+    us_per_day(options?: PowerUpStateOptions): number;
+    weight_to_us(sample: UInt128, weight: number): number;
+    us_to_weight(sample: UInt128, us: number): number;
+    frac: (usage: SampleUsage, us: number) => number;
+    frac_by_ms: (usage: SampleUsage, ms: number) => number;
+    frac_by_us(usage: SampleUsage, us: number): number;
+    price_per: (usage: SampleUsage, us?: number, options?: PowerUpStateOptions) => number;
+    price_per_ms: (usage: SampleUsage, ms?: number, options?: PowerUpStateOptions) => number;
+    price_per_us(usage: SampleUsage, us?: number, options?: PowerUpStateOptions): number;
+}
+
+declare class PowerUpStateResourceNET extends PowerUpStateResource {
+    per_day: (options?: PowerUpStateOptions) => number;
+    kb_per_day(options?: PowerUpStateOptions): number;
+    bytes_per_day(options?: PowerUpStateOptions): number;
+    weight_to_bytes(sample: UInt128, weight: number): number;
+    bytes_to_weight(sample: UInt128, bytes: number): number;
+    frac: (usage: SampleUsage, bytes: number) => number;
+    frac_by_kb: (usage: SampleUsage, kilobytes: number) => number;
+    frac_by_bytes(usage: SampleUsage, bytes: number): number;
+    price_per: (usage: SampleUsage, bytes?: number, options?: PowerUpStateOptions) => number;
+    price_per_kb: (usage: SampleUsage, kilobytes?: number, options?: PowerUpStateOptions) => number;
+    price_per_byte(usage: SampleUsage, bytes?: number, options?: PowerUpStateOptions): number;
+}
+
+declare class PowerUpState extends Struct {
+    version: UInt8;
+    net: PowerUpStateResourceNET;
+    cpu: PowerUpStateResourceCPU;
+    powerup_days: UInt32;
+    min_powerup_fee: Asset;
+}
+declare class PowerUpAPI {
+    private parent;
+    constructor(parent: Resources);
+    get_state(): Promise<PowerUpState>;
+}
+
+declare class Connector extends Struct {
+    balance: Asset;
+    weight: Float64;
+}
+declare class ExchangeState extends Struct {
+    supply: Asset;
+    base: Connector;
+    quote: Connector;
+}
+declare class RAMState extends ExchangeState {
+    price_per(bytes: number): Asset;
+    price_per_kb(kilobytes: number): Asset;
+    get_input(base: Int64, quote: Int64, value: Int64): Int64;
+}
+declare class RAMAPI {
+    private parent;
+    constructor(parent: Resources);
+    get_state(): Promise<RAMState>;
+}
+
+declare class REXState extends Struct {
+    version: UInt8;
+    total_lent: Asset;
+    total_unlent: Asset;
+    total_rent: Asset;
+    total_lendable: Asset;
+    total_rex: Asset;
+    namebid_proceeds: Asset;
+    loan_num: UInt64;
+    get reserved(): number;
+    get symbol(): Asset.Symbol;
+    get precision(): number;
+    get value(): number;
+    exchange(amount: Asset): Asset;
+    price_per(sample: SampleUsage, unit?: number): number;
+}
+declare class REXAPI {
+    private parent;
+    constructor(parent: Resources);
+    get_state(): Promise<REXState>;
+}
+
+interface ResourcesOptions extends APIClientOptions {
+    api?: APIClient;
+    sampleAccount?: string;
+    symbol?: string;
+    url?: string;
+}
+interface SampleUsage {
+    account: AccountObject;
+    cpu: UInt128;
+    net: UInt128;
+}
+declare const BNPrecision: BN;
+declare class Resources {
+    static __className: string;
+    readonly api: APIClient;
+    sampleAccount: string;
+    symbol: string;
+    constructor(options: ResourcesOptions);
+    v1: {
+        powerup: PowerUpAPI;
+        ram: RAMAPI;
+        rex: REXAPI;
+    };
+    getSampledUsage(): Promise<SampleUsage>;
+}
+
+export { ABI, ABIDecoder, ABIDef, ABIEncoder, ABISerializable, ABISerializableConstructor, ABISerializableObject, ABISerializableType, types$1 as API, APIClient, APIClientOptions, APIError, APIErrorData, APIErrorDetail, APIMethods, APIProvider, APIResponse, Action, ActionFields, ActionType, AnyAction, AnyInt, AnyTransaction, AnyVariant, Asset, AssetType, Authority, AuthorityType, BNPrecision, Base58, Blob, BlobType, BlockId, BlockIdType, BlockTimestamp, Bytes, BytesEncoding, BytesType, Cancelable, Canceled, ChainAPI, ChainDefinition, ChainDefinitionArgs, ChainDefinitionType, ChainIndices, ChainNames, Chains, Checksum160, Checksum160Type, Checksum256, Checksum256Type, Checksum512, Checksum512Type, CompressionType, Connector, DivisionBehavior, ExchangeState, ExplorerDefinition, ExplorerDefinitionType, ExtendedAsset, ExtendedAssetType, ExtendedSymbol, ExtendedSymbolType, Fetch, FetchProvider, FetchProviderOptions, Float128, Float128Type, Float32, Float32Type, Float64, Float64Type, HistoryAPI, Int, Int128, Int128Type, Int16, Int16Type, Int32, Int32Type, Int64, Int64Type, Int8, Int8Type, KeyType, KeyWeight, LocaleDefinitions, Logo, LogoType, Name, NameType, OverflowBehavior, types as P2P, P2PClient, P2PClientOptions, P2PDataHandler, P2PErrorHandler, P2PEventMap, P2PHandler, P2PMessageHandler, P2PProvider, PackedTransaction, PackedTransactionType, PermissionLevel, PermissionLevelType, PermissionLevelWeight, PowerUpAPI, PowerUpState, PrivateKey, PrivateKeyType, PublicKey, PublicKeyType, RAMAPI, RAMState, REXAPI, REXState, Resources, SampleUsage, Serializer, Signature, SignatureType, SignedTransaction, SignedTransactionFields, SignedTransactionType, SimpleEnvelopeP2PProvider, Struct, StructConstructor, TelosAccountObject, TelosAccountVoterInfo, TimePoint, TimePointSec, TimePointType, Transaction, TransactionExtension, TransactionFields, TransactionHeader, TransactionHeaderFields, TransactionHeaderType, TransactionReceipt, TransactionType, TypeAlias, UInt128, UInt128Type, UInt16, UInt16Type, UInt32, UInt32Type, UInt64, UInt64Type, UInt8, UInt8Type, VarInt, VarIntType, VarUInt, VarUIntType, Variant, VariantConstructor, WAXAccountObject, WAXAccountVoterInfo, WaitWeight, Weight, addressToWireName, arrayEquals, arrayEquatableEquals, arrayToHex, cancelable, chainIdsToIndices, chainLogos, hexToArray, isInstanceOf, secureRandom };

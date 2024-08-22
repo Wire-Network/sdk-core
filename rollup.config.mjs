@@ -12,7 +12,7 @@ const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json')))
 const license = fs.readFileSync('LICENSE').toString('utf-8').trim()
 const banner = `
 /**
- * @wharfkit/antelope v${pkg.version}
+ * @wire-sdk/core v${pkg.version}
  * ${pkg.homepage}
  *
  * @license

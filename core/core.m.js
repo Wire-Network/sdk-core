@@ -1,5 +1,5 @@
 /**
- * @wharfkit/antelope v1.1.0
+ * @wire-sdk/core v1.1.0
  * https://gitea.gitgo.app/Wire/sdk-core
  *
  * @license
@@ -39,6 +39,7 @@ import BN from 'bn.js';
 import { ec } from 'elliptic';
 import { __decorate } from 'tslib';
 import pako from 'pako';
+import bigDecimal from 'js-big-decimal';
 
 function arrayEquals(a, b) {
     const len = a.length;
@@ -139,7 +140,7 @@ function isInstanceOf(object, someClass) {
     }
     if (isAlienInstance && !didWarn) {
         // eslint-disable-next-line no-console
-        console.warn(`Detected alien instance of ${className}, this usually means more than one version of @wharfkit/antelope has been included in your bundle.`);
+        console.warn(`Detected alien instance of ${className}, this usually means more than one version of @wire-sdk/core has been included in your bundle.`);
         didWarn = true;
     }
     return isAlienInstance;
@@ -6159,5 +6160,852 @@ class SimpleEnvelopeP2PProvider {
 }
 SimpleEnvelopeP2PProvider.maxReadLength = 8 * 1024 * 1024;
 
-export { ABI, ABIDecoder, ABIEncoder, types$1 as API, APIClient, APIError, Action, Asset, Authority, Base58, Blob, BlockId, BlockTimestamp, Bytes, ChainAPI, Checksum160, Checksum256, Checksum512, CompressionType, ExtendedAsset, ExtendedSymbol, FetchProvider, Float128, Float32, Float64, HistoryAPI, Int, Int128, Int16, Int32, Int64, Int8, KeyType, KeyWeight, Name, types as P2P, P2PClient, PackedTransaction, PermissionLevel, PermissionLevelWeight, PrivateKey, PublicKey, Serializer, Signature, SignedTransaction, SimpleEnvelopeP2PProvider, Struct, TimePoint, TimePointSec, Transaction, TransactionExtension, TransactionHeader, TransactionReceipt, TypeAlias, UInt128, UInt16, UInt32, UInt64, UInt8, VarInt, VarUInt, Variant, WaitWeight, Weight, addressToWireName, arrayEquals, arrayEquatableEquals, arrayToHex, hexToArray, isInstanceOf, secureRandom };
+/**
+ * Cancelable promises
+ *
+ * https://stackoverflow.com/questions/46461801/possible-to-add-a-cancel-method-to-promise-in-typescript/46464377#46464377
+ */
+class Canceled extends Error {
+    constructor(reason, silent = false) {
+        super(reason);
+        this.silent = false;
+        this.silent = silent;
+        Object.setPrototypeOf(this, Canceled.prototype);
+    }
+}
+function cancelable(promise, onCancel) {
+    let cancel = null;
+    const cancelable = new Promise((resolve, reject) => {
+        cancel = (reason = '', silent = false) => {
+            try {
+                if (onCancel) {
+                    onCancel(new Canceled(reason, silent));
+                }
+            }
+            catch (e) {
+                reject(e);
+            }
+            return cancelable;
+        };
+        promise.then(resolve, reject);
+    });
+    if (cancel) {
+        cancelable.cancel = cancel;
+    }
+    return cancelable;
+}
+
+let ExplorerDefinition = class ExplorerDefinition extends Struct {
+    url(id) {
+        return `${this.prefix}${id}${this.suffix}`;
+    }
+};
+__decorate([
+    Struct.field('string')
+], ExplorerDefinition.prototype, "prefix", void 0);
+__decorate([
+    Struct.field('string')
+], ExplorerDefinition.prototype, "suffix", void 0);
+ExplorerDefinition = __decorate([
+    Struct.type('explorer_definition')
+], ExplorerDefinition);
+
+var Logo_1;
+let Logo = Logo_1 = class Logo extends Struct {
+    static from(data) {
+        if (typeof data === 'string') {
+            return new Logo_1({ light: data, dark: data });
+        }
+        return super.from(data);
+    }
+    getVariant(variant) {
+        return this[variant];
+    }
+    toString() {
+        return this.light;
+    }
+};
+__decorate([
+    Struct.field('string')
+], Logo.prototype, "dark", void 0);
+__decorate([
+    Struct.field('string')
+], Logo.prototype, "light", void 0);
+Logo = Logo_1 = __decorate([
+    Struct.type('logo')
+], Logo);
+
+/**
+ * The information required to interact with a given chain.
+ */
+class ChainDefinition {
+    constructor(data) {
+        this.id = Checksum256.from(data.id);
+        this.url = data.url;
+        this.logo = data.logo;
+        this.explorer = data.explorer;
+        this.accountDataType = data.accountDataType;
+    }
+    static from(data) {
+        return new ChainDefinition({
+            ...data,
+            explorer: data.explorer ? ExplorerDefinition.from(data.explorer) : undefined,
+            logo: data.logo ? Logo.from(data.logo) : undefined,
+        });
+    }
+    get name() {
+        const indice = chainIdsToIndices.get(String(this.id));
+        if (!indice) {
+            return 'Unknown blockchain';
+        }
+        return ChainNames[indice];
+    }
+    getLogo() {
+        const id = String(this.id);
+        if (this.logo) {
+            return Logo.from(this.logo);
+        }
+        if (chainLogos.has(id)) {
+            const logo = chainLogos.get(id);
+            if (logo) {
+                return Logo.from(logo);
+            }
+        }
+        return undefined;
+    }
+    equals(def) {
+        const other = ChainDefinition.from(def);
+        return this.id.equals(other.id) && this.url === other.url;
+    }
+}
+/**
+ * List of human readable chain names based on the ChainIndices type.
+ */
+const ChainNames = {
+    EOS: 'EOS',
+    FIO: 'FIO',
+    FIOTestnet: 'FIO (Testnet)',
+    Jungle4: 'Jungle 4 (Testnet)',
+    KylinTestnet: 'Kylin (Testnet)',
+    Libre: 'Libre',
+    LibreTestnet: 'Libre (Testnet)',
+    Proton: 'Proton',
+    ProtonTestnet: 'Proton (Testnet)',
+    Telos: 'Telos',
+    TelosTestnet: 'Telos (Testnet)',
+    WAX: 'WAX',
+    WAXTestnet: 'WAX (Testnet)',
+    UX: 'UX Network',
+};
+let TelosAccountVoterInfo = class TelosAccountVoterInfo extends AccountVoterInfo {
+};
+__decorate([
+    Struct.field(Int64)
+], TelosAccountVoterInfo.prototype, "last_stake", void 0);
+TelosAccountVoterInfo = __decorate([
+    Struct.type('telos_account_voter_info')
+], TelosAccountVoterInfo);
+let TelosAccountObject = class TelosAccountObject extends AccountObject {
+};
+__decorate([
+    Struct.field(TelosAccountVoterInfo, { optional: true })
+], TelosAccountObject.prototype, "voter_info", void 0);
+TelosAccountObject = __decorate([
+    Struct.type('telos_account_object')
+], TelosAccountObject);
+let WAXAccountVoterInfo = class WAXAccountVoterInfo extends AccountVoterInfo {
+};
+__decorate([
+    Struct.field(Float64)
+], WAXAccountVoterInfo.prototype, "unpaid_voteshare", void 0);
+__decorate([
+    Struct.field(TimePoint)
+], WAXAccountVoterInfo.prototype, "unpaid_voteshare_last_updated", void 0);
+__decorate([
+    Struct.field(Float64)
+], WAXAccountVoterInfo.prototype, "unpaid_voteshare_change_rate", void 0);
+__decorate([
+    Struct.field(TimePoint)
+], WAXAccountVoterInfo.prototype, "last_claim_time", void 0);
+WAXAccountVoterInfo = __decorate([
+    Struct.type('wax_account_voter_info')
+], WAXAccountVoterInfo);
+let WAXAccountObject = class WAXAccountObject extends AccountObject {
+};
+__decorate([
+    Struct.field(WAXAccountVoterInfo, { optional: true })
+], WAXAccountObject.prototype, "voter_info", void 0);
+WAXAccountObject = __decorate([
+    Struct.type('wax_account_object')
+], WAXAccountObject);
+/**
+ * An exported list of ChainDefinition entries for select chains.
+ */
+var Chains;
+(function (Chains) {
+    Chains.EOS = ChainDefinition.from({
+        id: 'aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906',
+        url: 'https://eos.greymass.com',
+        explorer: {
+            prefix: 'https://bloks.io/transaction/',
+            suffix: '',
+        },
+    });
+    Chains.FIO = ChainDefinition.from({
+        id: '21dcae42c0182200e93f954a074011f9048a7624c6fe81d3c9541a614a88bd1c',
+        url: 'https://fio.greymass.com',
+        explorer: {
+            prefix: 'https://fio.bloks.io/transaction/',
+            suffix: '',
+        },
+    });
+    Chains.FIOTestnet = ChainDefinition.from({
+        id: 'b20901380af44ef59c5918439a1f9a41d83669020319a80574b804a5f95cbd7e',
+        url: 'https://fiotestnet.greymass.com',
+        explorer: {
+            prefix: 'https://fio-test.bloks.io/transaction/',
+            suffix: '',
+        },
+    });
+    Chains.Jungle4 = ChainDefinition.from({
+        id: '73e4385a2708e6d7048834fbc1079f2fabb17b3c125b146af438971e90716c4d',
+        url: 'https://jungle4.greymass.com',
+    });
+    Chains.KylinTestnet = ChainDefinition.from({
+        id: '5fff1dae8dc8e2fc4d5b23b2c7665c97f9e9d8edf2b6485a86ba311c25639191',
+        url: 'https://api.kylin.alohaeos.com',
+    });
+    Chains.Libre = ChainDefinition.from({
+        id: '38b1d7815474d0c60683ecbea321d723e83f5da6ae5f1c1f9fecc69d9ba96465',
+        url: 'https://libre.greymass.com',
+        explorer: {
+            prefix: 'https://www.libreblocks.io/tx/',
+            suffix: '',
+        },
+    });
+    Chains.LibreTestnet = ChainDefinition.from({
+        id: 'b64646740308df2ee06c6b72f34c0f7fa066d940e831f752db2006fcc2b78dee',
+        url: 'https://libretestnet.greymass.com',
+    });
+    Chains.Proton = ChainDefinition.from({
+        id: '384da888112027f0321850a169f737c33e53b388aad48b5adace4bab97f437e0',
+        url: 'https://proton.greymass.com',
+        explorer: {
+            prefix: 'https://www.protonscan.io/transaction/',
+            suffix: '',
+        },
+    });
+    Chains.ProtonTestnet = ChainDefinition.from({
+        id: '71ee83bcf52142d61019d95f9cc5427ba6a0d7ff8accd9e2088ae2abeaf3d3dd',
+        url: 'https://proton-testnet.greymass.com',
+    });
+    Chains.Telos = ChainDefinition.from({
+        id: '4667b205c6838ef70ff7988f6e8257e8be0e1284a2f59699054a018f743b1d11',
+        url: 'https://telos.greymass.com',
+        explorer: {
+            prefix: 'https://explorer.telos.net/transaction/',
+            suffix: '',
+        },
+        accountDataType: TelosAccountObject,
+    });
+    Chains.TelosTestnet = ChainDefinition.from({
+        id: '1eaa0824707c8c16bd25145493bf062aecddfeb56c736f6ba6397f3195f33c9f',
+        url: 'https://telostestnet.greymass.com',
+        accountDataType: TelosAccountObject,
+    });
+    Chains.WAX = ChainDefinition.from({
+        id: '1064487b3cd1a897ce03ae5b6a865651747e2e152090f99c1d19d44e01aea5a4',
+        url: 'https://wax.greymass.com',
+        explorer: {
+            prefix: 'https://waxblock.io/transaction/',
+            suffix: '',
+        },
+        accountDataType: WAXAccountObject,
+    });
+    Chains.WAXTestnet = ChainDefinition.from({
+        id: 'f16b1833c747c43682f4386fca9cbb327929334a762755ebec17f6f23c9b8a12',
+        url: 'https://waxtestnet.greymass.com',
+        accountDataType: WAXAccountObject,
+    });
+    Chains.UX = ChainDefinition.from({
+        id: '8fc6dce7942189f842170de953932b1f66693ad3788f766e777b6f9d22335c02',
+        url: 'https://api.uxnetwork.io',
+        explorer: {
+            prefix: 'https://explorer.uxnetwork.io/tx/',
+            suffix: '',
+        },
+    });
+})(Chains || (Chains = {}));
+/**
+ * A list of chain IDs and their ChainIndices for reference lookups
+ */
+const chainIdsToIndices = new Map([
+    ['aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906', 'EOS'],
+    ['21dcae42c0182200e93f954a074011f9048a7624c6fe81d3c9541a614a88bd1c', 'FIO'],
+    ['b20901380af44ef59c5918439a1f9a41d83669020319a80574b804a5f95cbd7e', 'FIOTestnet'],
+    ['73e4385a2708e6d7048834fbc1079f2fabb17b3c125b146af438971e90716c4d', 'Jungle4'],
+    ['5fff1dae8dc8e2fc4d5b23b2c7665c97f9e9d8edf2b6485a86ba311c25639191', 'KylinTestnet'],
+    ['38b1d7815474d0c60683ecbea321d723e83f5da6ae5f1c1f9fecc69d9ba96465', 'Libre'],
+    ['b64646740308df2ee06c6b72f34c0f7fa066d940e831f752db2006fcc2b78dee', 'LibreTestnet'],
+    ['384da888112027f0321850a169f737c33e53b388aad48b5adace4bab97f437e0', 'Proton'],
+    ['71ee83bcf52142d61019d95f9cc5427ba6a0d7ff8accd9e2088ae2abeaf3d3dd', 'ProtonTestnet'],
+    ['4667b205c6838ef70ff7988f6e8257e8be0e1284a2f59699054a018f743b1d11', 'Telos'],
+    ['1eaa0824707c8c16bd25145493bf062aecddfeb56c736f6ba6397f3195f33c9f', 'TelosTestnet'],
+    ['8fc6dce7942189f842170de953932b1f66693ad3788f766e777b6f9d22335c02', 'UX'],
+    ['1064487b3cd1a897ce03ae5b6a865651747e2e152090f99c1d19d44e01aea5a4', 'WAX'],
+    ['f16b1833c747c43682f4386fca9cbb327929334a762755ebec17f6f23c9b8a12', 'WAXTestnet'],
+]);
+/**
+ * A list of known chain IDs and their logos.
+ */
+const chainLogos = new Map([
+    [
+        'aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906',
+        'https://assets.wharfkit.com/chain/eos.png',
+    ],
+    [
+        '21dcae42c0182200e93f954a074011f9048a7624c6fe81d3c9541a614a88bd1c',
+        'https://assets.wharfkit.com/chain/fio.png',
+    ],
+    [
+        'b20901380af44ef59c5918439a1f9a41d83669020319a80574b804a5f95cbd7e',
+        'https://assets.wharfkit.com/chain/fio.png',
+    ],
+    [
+        '2a02a0053e5a8cf73a56ba0fda11e4d92e0238a4a2aa74fccf46d5a910746840',
+        'https://assets.wharfkit.com/chain/jungle.png',
+    ],
+    [
+        '73e4385a2708e6d7048834fbc1079f2fabb17b3c125b146af438971e90716c4d',
+        'https://assets.wharfkit.com/chain/jungle.png',
+    ],
+    [
+        '38b1d7815474d0c60683ecbea321d723e83f5da6ae5f1c1f9fecc69d9ba96465',
+        'https://assets.wharfkit.com/chain/libre.png',
+    ],
+    [
+        'b64646740308df2ee06c6b72f34c0f7fa066d940e831f752db2006fcc2b78dee',
+        'https://assets.wharfkit.com/chain/libre.png',
+    ],
+    [
+        '384da888112027f0321850a169f737c33e53b388aad48b5adace4bab97f437e0',
+        'https://assets.wharfkit.com/chain/proton.png',
+    ],
+    [
+        '71ee83bcf52142d61019d95f9cc5427ba6a0d7ff8accd9e2088ae2abeaf3d3dd',
+        'https://assets.wharfkit.com/chain/proton.png',
+    ],
+    [
+        '4667b205c6838ef70ff7988f6e8257e8be0e1284a2f59699054a018f743b1d11',
+        'https://assets.wharfkit.com/chain/telos.png',
+    ],
+    [
+        '1eaa0824707c8c16bd25145493bf062aecddfeb56c736f6ba6397f3195f33c9f',
+        'https://assets.wharfkit.com/chain/telos.png',
+    ],
+    [
+        '8fc6dce7942189f842170de953932b1f66693ad3788f766e777b6f9d22335c02',
+        'https://assets.wharfkit.com/chain/ux.png',
+    ],
+    [
+        '1064487b3cd1a897ce03ae5b6a865651747e2e152090f99c1d19d44e01aea5a4',
+        'https://assets.wharfkit.com/chain/wax.png',
+    ],
+    [
+        'f16b1833c747c43682f4386fca9cbb327929334a762755ebec17f6f23c9b8a12',
+        'https://assets.wharfkit.com/chain/wax.png',
+    ],
+]);
+
+class PowerUpStateResource extends Struct {
+    constructor() {
+        super(...arguments);
+        this.default_block_cpu_limit = UInt64.from(200000);
+        this.default_block_net_limit = UInt64.from(1048576000);
+    }
+    // Get the current number of allocated units (shift from REX -> PowerUp)
+    get allocated() {
+        return 1 - Number(this.weight_ratio) / Number(this.target_weight_ratio) / 100;
+    }
+    // Get the current percentage of reserved units
+    get reserved() {
+        return new BN(String(this.utilization)).div(new BN(String(this.weight)));
+    }
+    // Get the symbol definition for the token
+    get symbol() {
+        return this.min_price.symbol;
+    }
+    // Common casting for typed values to numbers
+    cast() {
+        return {
+            adjusted_utilization: Number(this.adjusted_utilization),
+            decay_secs: Number(this.decay_secs.value),
+            exponent: Number(this.exponent),
+            utilization: Number(this.utilization),
+            utilization_timestamp: Number(this.utilization_timestamp.value),
+            weight: new BN(String(this.weight)),
+            weight_ratio: Number(this.weight_ratio),
+        };
+    }
+    // Mimic: https://github.com/EOSIO/eosio.contracts/blob/d7bc0a5cc8c0c2edd4dc61b0126517d0cb46fd94/contracts/eosio.system/src/powerup.cpp#L358
+    utilization_increase(sample, frac) {
+        const { weight } = this;
+        const frac128 = UInt128.from(frac);
+        const resultBN = new BN(weight.value.mul(new BN(frac128.value))).div(new BN('1000000000000000'));
+        const resultNumber = resultBN.toNumber();
+        return Math.ceil(resultNumber);
+    }
+    // Mimic: https://github.com/EOSIO/eosio.contracts/blob/d7bc0a5cc8c0c2edd4dc61b0126517d0cb46fd94/contracts/eosio.system/src/powerup.cpp#L284-L298
+    price_function(utilization) {
+        const { exponent, weight } = this.cast();
+        const max_price = this.max_price.value;
+        const min_price = this.min_price.value;
+        let price = min_price;
+        const new_exponent = exponent - 1.0;
+        if (new_exponent <= 0.0) {
+            return max_price;
+        }
+        else {
+            const util_weight = new BN(utilization).div(weight);
+            price += (max_price - min_price) * Math.pow(util_weight.toNumber(), new_exponent);
+        }
+        return price;
+    }
+    // Mimic: https://github.com/EOSIO/eosio.contracts/blob/d7bc0a5cc8c0c2edd4dc61b0126517d0cb46fd94/contracts/eosio.system/src/powerup.cpp#L274-L280
+    price_integral_delta(start_utilization, end_utilization) {
+        const { exponent, weight } = this.cast();
+        const max_price = this.max_price.value;
+        const min_price = this.min_price.value;
+        const coefficient = (max_price - min_price) / exponent;
+        const start_u = new BN(start_utilization).div(weight);
+        const end_u = new BN(end_utilization).div(weight);
+        const delta = min_price * end_u.toNumber() -
+            min_price * start_u.toNumber() +
+            coefficient * Math.pow(end_u.toNumber(), exponent) -
+            coefficient * Math.pow(start_u.toNumber(), exponent);
+        return delta;
+    }
+    // Mimic: https://github.com/EOSIO/eosio.contracts/blob/d7bc0a5cc8c0c2edd4dc61b0126517d0cb46fd94/contracts/eosio.system/src/powerup.cpp#L262-L315
+    fee(utilization_increase, adjusted_utilization) {
+        const { utilization, weight } = this.cast();
+        let start_utilization = utilization;
+        const end_utilization = start_utilization + utilization_increase;
+        let fee = 0;
+        if (start_utilization < adjusted_utilization) {
+            const min = Math.min(utilization_increase, adjusted_utilization - start_utilization);
+            fee += Number(new bigDecimal(this.price_function(adjusted_utilization) * min)
+                .divide(new bigDecimal(weight.toString()))
+                .getValue());
+            start_utilization = adjusted_utilization;
+        }
+        if (start_utilization < end_utilization) {
+            fee += this.price_integral_delta(start_utilization, end_utilization);
+        }
+        return fee;
+    }
+    // Mimic: https://github.com/EOSIO/eosio.contracts/blob/d7bc0a5cc8c0c2edd4dc61b0126517d0cb46fd94/contracts/eosio.system/src/powerup.cpp#L105-L117
+    determine_adjusted_utilization(options) {
+        // Casting EOSIO types to usable formats for JS calculations
+        const { decay_secs, utilization, utilization_timestamp } = this.cast();
+        let { adjusted_utilization } = this.cast();
+        // If utilization is less than adjusted, calculate real time value
+        if (utilization < adjusted_utilization) {
+            // Create now & adjust JS timestamp to match EOSIO timestamp values
+            const ts = options && options.timestamp ? options.timestamp : new Date();
+            const now = TimePointSec.from(ts).toMilliseconds() / 1000;
+            const diff = adjusted_utilization - utilization;
+            let delta = diff * Math.exp(-(now - utilization_timestamp) / decay_secs);
+            delta = Math.min(Math.max(delta, 0), diff); // Clamp the delta
+            adjusted_utilization = utilization + delta;
+        }
+        return adjusted_utilization;
+    }
+}
+__decorate([
+    Struct.field('uint8')
+], PowerUpStateResource.prototype, "version", void 0);
+__decorate([
+    Struct.field('int64')
+], PowerUpStateResource.prototype, "weight", void 0);
+__decorate([
+    Struct.field('int64')
+], PowerUpStateResource.prototype, "weight_ratio", void 0);
+__decorate([
+    Struct.field('int64')
+], PowerUpStateResource.prototype, "assumed_stake_weight", void 0);
+__decorate([
+    Struct.field('int64')
+], PowerUpStateResource.prototype, "initial_weight_ratio", void 0);
+__decorate([
+    Struct.field('int64')
+], PowerUpStateResource.prototype, "target_weight_ratio", void 0);
+__decorate([
+    Struct.field('time_point_sec')
+], PowerUpStateResource.prototype, "initial_timestamp", void 0);
+__decorate([
+    Struct.field('time_point_sec')
+], PowerUpStateResource.prototype, "target_timestamp", void 0);
+__decorate([
+    Struct.field('float64')
+], PowerUpStateResource.prototype, "exponent", void 0);
+__decorate([
+    Struct.field('uint32')
+], PowerUpStateResource.prototype, "decay_secs", void 0);
+__decorate([
+    Struct.field('asset')
+], PowerUpStateResource.prototype, "min_price", void 0);
+__decorate([
+    Struct.field('asset')
+], PowerUpStateResource.prototype, "max_price", void 0);
+__decorate([
+    Struct.field('int64')
+], PowerUpStateResource.prototype, "utilization", void 0);
+__decorate([
+    Struct.field('int64')
+], PowerUpStateResource.prototype, "adjusted_utilization", void 0);
+__decorate([
+    Struct.field('time_point_sec')
+], PowerUpStateResource.prototype, "utilization_timestamp", void 0);
+
+let PowerUpStateResourceCPU = class PowerUpStateResourceCPU extends PowerUpStateResource {
+    constructor() {
+        super(...arguments);
+        // Return smallest units per day, μs (microseconds)
+        this.per_day = (options) => this.us_per_day(options);
+        // Default frac generation by smallest unit type
+        this.frac = (usage, us) => this.frac_by_us(usage, us);
+        // Frac generation by ms (milliseconds)
+        this.frac_by_ms = (usage, ms) => this.frac_by_us(usage, ms * 1000);
+        // Price generation by smallest units, μs (microseconds)
+        this.price_per = (usage, us = 1000, options) => this.price_per_us(usage, us, options);
+        // Price generation by ms (milliseconds)
+        this.price_per_ms = (usage, ms = 1, options) => this.price_per_us(usage, ms * 1000, options);
+    }
+    // Return ms (milliseconds) per day
+    ms_per_day(options) {
+        return this.us_per_day(options) / 1000;
+    }
+    // Return μs (microseconds) per day
+    us_per_day(options) {
+        const limit = options && options.virtual_block_cpu_limit
+            ? options.virtual_block_cpu_limit
+            : this.default_block_cpu_limit;
+        return Number(limit) * 2 * 60 * 60 * 24;
+    }
+    // Convert weight to μs (microseconds)
+    weight_to_us(sample, weight) {
+        return Math.ceil((weight * Number(sample)) / BNPrecision.toNumber());
+    }
+    // Convert μs (microseconds) to weight
+    us_to_weight(sample, us) {
+        return Math.floor((us / Number(sample)) * BNPrecision.toNumber());
+    }
+    // Frac generation by μs (microseconds)
+    frac_by_us(usage, us) {
+        const { weight } = this.cast();
+        const frac = new BN(this.us_to_weight(usage.cpu, us)).div(weight);
+        return Math.floor(frac.toNumber() * Math.pow(10, 15));
+    }
+    // Price generation by μs (microseconds)
+    price_per_us(usage, us = 1000, options) {
+        // Determine the utilization increase by this action
+        const frac = UInt128.from(this.frac(usage, us));
+        const utilization_increase = this.utilization_increase(usage.cpu, frac);
+        // Determine the adjusted utilization if needed
+        const adjusted_utilization = this.determine_adjusted_utilization(options);
+        // Derive the fee from the increase and utilization
+        const fee = this.fee(utilization_increase, adjusted_utilization);
+        // Force the fee up to the next highest value of precision
+        const precision = Math.pow(10, this.max_price.symbol.precision);
+        const value = Math.ceil(fee * precision) / precision;
+        // Return the modified fee
+        return value;
+    }
+};
+PowerUpStateResourceCPU = __decorate([
+    Struct.type('powerupstateresourcecpu')
+], PowerUpStateResourceCPU);
+
+let PowerUpStateResourceNET = class PowerUpStateResourceNET extends PowerUpStateResource {
+    constructor() {
+        super(...arguments);
+        // Return smallest units per day, bytes
+        this.per_day = (options) => this.bytes_per_day(options);
+        // Default frac generation by smallest unit type
+        this.frac = (usage, bytes) => this.frac_by_bytes(usage, bytes);
+        // Frac generation by kb
+        this.frac_by_kb = (usage, kilobytes) => this.frac_by_bytes(usage, kilobytes * 1000);
+        // Price generation by smallest units, bytes
+        this.price_per = (usage, bytes = 1000, options) => this.price_per_byte(usage, bytes, options);
+        // Price generation by kb
+        this.price_per_kb = (usage, kilobytes = 1, options) => this.price_per_byte(usage, kilobytes * 1000, options);
+    }
+    // Return kb per day
+    kb_per_day(options) {
+        return this.bytes_per_day(options) / 1000;
+    }
+    // Return bytes per day
+    bytes_per_day(options) {
+        const limit = options && options.virtual_block_net_limit
+            ? options.virtual_block_net_limit
+            : this.default_block_net_limit;
+        return Number(limit) * 2 * 60 * 60 * 24;
+    }
+    // Convert weight to bytes
+    weight_to_bytes(sample, weight) {
+        return Math.ceil((weight * Number(sample)) / BNPrecision.toNumber());
+    }
+    // Convert bytes to weight
+    bytes_to_weight(sample, bytes) {
+        return Math.floor((bytes / Number(sample)) * BNPrecision.toNumber());
+    }
+    // Frac generation by bytes
+    frac_by_bytes(usage, bytes) {
+        const { weight } = this.cast();
+        const frac = new BN(this.bytes_to_weight(usage.net, bytes)).div(weight);
+        return Math.floor(frac.toNumber() * Math.pow(10, 15));
+    }
+    // Price generation by bytes
+    price_per_byte(usage, bytes = 1000, options) {
+        // Determine the utilization increase by this action
+        const frac = UInt128.from(this.frac(usage, bytes));
+        const utilization_increase = this.utilization_increase(usage.net, frac);
+        // Determine the adjusted utilization if needed
+        const adjusted_utilization = this.determine_adjusted_utilization(options);
+        // Derive the fee from the increase and utilization
+        const fee = this.fee(utilization_increase, adjusted_utilization);
+        // Force the fee up to the next highest value of precision
+        const precision = Math.pow(10, this.max_price.symbol.precision);
+        const value = Math.ceil(fee * precision) / precision;
+        // Return the modified fee
+        return value;
+    }
+};
+PowerUpStateResourceNET = __decorate([
+    Struct.type('powerupstateresourcenet')
+], PowerUpStateResourceNET);
+
+let PowerUpState = class PowerUpState extends Struct {
+};
+__decorate([
+    Struct.field('uint8')
+], PowerUpState.prototype, "version", void 0);
+__decorate([
+    Struct.field(PowerUpStateResourceNET)
+], PowerUpState.prototype, "net", void 0);
+__decorate([
+    Struct.field(PowerUpStateResourceCPU)
+], PowerUpState.prototype, "cpu", void 0);
+__decorate([
+    Struct.field('uint32')
+], PowerUpState.prototype, "powerup_days", void 0);
+__decorate([
+    Struct.field('asset')
+], PowerUpState.prototype, "min_powerup_fee", void 0);
+PowerUpState = __decorate([
+    Struct.type('powerupstate')
+], PowerUpState);
+class PowerUpAPI {
+    constructor(parent) {
+        this.parent = parent;
+    }
+    async get_state() {
+        const response = await this.parent.api.v1.chain.get_table_rows({
+            code: 'eosio',
+            scope: '',
+            table: 'powup.state',
+            type: PowerUpState,
+        });
+        return response.rows[0];
+    }
+}
+
+let Connector = class Connector extends Struct {
+};
+__decorate([
+    Struct.field('asset')
+], Connector.prototype, "balance", void 0);
+__decorate([
+    Struct.field('float64')
+], Connector.prototype, "weight", void 0);
+Connector = __decorate([
+    Struct.type('connector')
+], Connector);
+let ExchangeState = class ExchangeState extends Struct {
+};
+__decorate([
+    Struct.field('asset')
+], ExchangeState.prototype, "supply", void 0);
+__decorate([
+    Struct.field(Connector)
+], ExchangeState.prototype, "base", void 0);
+__decorate([
+    Struct.field(Connector)
+], ExchangeState.prototype, "quote", void 0);
+ExchangeState = __decorate([
+    Struct.type('exchange_state')
+], ExchangeState);
+let RAMState = class RAMState extends ExchangeState {
+    price_per(bytes) {
+        const base = this.base.balance.units;
+        const quote = this.quote.balance.units;
+        return Asset.fromUnits(this.get_input(base, quote, Int64.from(bytes)), this.quote.balance.symbol);
+    }
+    price_per_kb(kilobytes) {
+        return this.price_per(kilobytes * 1000);
+    }
+    // Derived from https://github.com/EOSIO/eosio.contracts/blob/f6578c45c83ec60826e6a1eeb9ee71de85abe976/contracts/eosio.system/src/exchange_state.cpp#L96
+    get_input(base, quote, value) {
+        // (quote * value) / (base - value), using 'ceil' to round up
+        return quote.multiplying(value).dividing(base.subtracting(value), 'ceil');
+    }
+};
+RAMState = __decorate([
+    Struct.type('ramstate')
+], RAMState);
+class RAMAPI {
+    constructor(parent) {
+        this.parent = parent;
+    }
+    async get_state() {
+        const response = await this.parent.api.v1.chain.get_table_rows({
+            code: 'eosio',
+            scope: 'eosio',
+            table: 'rammarket',
+            type: RAMState,
+        });
+        return response.rows[0];
+    }
+}
+
+let REXState = class REXState extends Struct {
+    get reserved() {
+        return Number(this.total_lent.units) / Number(this.total_lendable.units);
+    }
+    get symbol() {
+        return this.total_lent.symbol;
+    }
+    get precision() {
+        return this.total_lent.symbol.precision;
+    }
+    get value() {
+        return ((Number(this.total_lent.units) + Number(this.total_unlent.units)) /
+            Number(this.total_rex.units));
+    }
+    exchange(amount) {
+        return Asset.from((amount.value * this.total_lendable.value) / this.total_rex.value, this.symbol);
+    }
+    price_per(sample, unit = 1000) {
+        // Sample token units
+        const tokens = Asset.fromUnits(10000, this.symbol);
+        // Spending 1 EOS (10000 units) on REX gives this many tokens
+        const bancor = Number(tokens.units) / (this.total_rent.value / this.total_unlent.value);
+        // The ratio of the number of tokens received vs the sampled values
+        const unitPrice = bancor * (Number(sample.cpu) / BNPrecision.toNumber());
+        // The token units spent per unit
+        const perunit = Number(tokens.units) / unitPrice;
+        // Multiply the per unit cost by the units requested
+        const cost = perunit * unit;
+        // Converting to an Asset
+        return cost / Math.pow(10, this.precision);
+    }
+};
+__decorate([
+    Struct.field('uint8')
+], REXState.prototype, "version", void 0);
+__decorate([
+    Struct.field('asset')
+], REXState.prototype, "total_lent", void 0);
+__decorate([
+    Struct.field('asset')
+], REXState.prototype, "total_unlent", void 0);
+__decorate([
+    Struct.field('asset')
+], REXState.prototype, "total_rent", void 0);
+__decorate([
+    Struct.field('asset')
+], REXState.prototype, "total_lendable", void 0);
+__decorate([
+    Struct.field('asset')
+], REXState.prototype, "total_rex", void 0);
+__decorate([
+    Struct.field('asset')
+], REXState.prototype, "namebid_proceeds", void 0);
+__decorate([
+    Struct.field('uint64')
+], REXState.prototype, "loan_num", void 0);
+REXState = __decorate([
+    Struct.type('rexstate')
+], REXState);
+class REXAPI {
+    constructor(parent) {
+        this.parent = parent;
+    }
+    async get_state() {
+        const response = await this.parent.api.v1.chain.get_table_rows({
+            code: 'eosio',
+            scope: 'eosio',
+            table: 'rexpool',
+            type: REXState,
+        });
+        return response.rows[0];
+    }
+}
+
+const BNPrecision = new BN(100 * 1000 * 1000);
+class Resources {
+    constructor(options) {
+        // the account to use when sampling usage
+        this.sampleAccount = 'greymassfuel';
+        // token precision/symbol
+        this.symbol = '4,EOS';
+        this.v1 = {
+            powerup: new PowerUpAPI(this),
+            ram: new RAMAPI(this),
+            rex: new REXAPI(this),
+        };
+        // Allow overriding of the sample account name
+        if (options.sampleAccount) {
+            this.sampleAccount = options.sampleAccount;
+        }
+        // Allow overriding of the system token symbol
+        if (options.symbol) {
+            this.symbol = options.symbol;
+        }
+        // Allow variations on how to specify the API configuration
+        if (options.api) {
+            this.api = options.api;
+        }
+        else if (options.url) {
+            this.api = new APIClient({ provider: new FetchProvider(options.url, options) });
+        }
+        else {
+            throw new Error('Missing url or api client');
+        }
+    }
+    async getSampledUsage() {
+        const account = await this.api.v1.chain.get_account(this.sampleAccount);
+        const us = UInt128.from(account.cpu_limit.max.value.mul(BNPrecision));
+        const byte = UInt128.from(account.net_limit.max.value.mul(BNPrecision));
+        const cpu_weight = UInt128.from(account.cpu_weight.value);
+        const net_weight = UInt128.from(account.net_weight.value);
+        return {
+            account,
+            cpu: divCeil(us.value, cpu_weight.value),
+            net: divCeil(byte.value, net_weight.value),
+        };
+    }
+}
+Resources.__className = 'Resources';
+function divCeil(num, den) {
+    let v = num.div(den);
+    const zero = new BN(0);
+    const one = new BN(1);
+    if (num.mod(den).gt(zero) && v.gt(one)) {
+        v = v.sub(one);
+    }
+    return UInt128.from(v);
+}
+
+export { ABI, ABIDecoder, ABIEncoder, types$1 as API, APIClient, APIError, Action, Asset, Authority, BNPrecision, Base58, Blob, BlockId, BlockTimestamp, Bytes, Canceled, ChainAPI, ChainDefinition, ChainNames, Chains, Checksum160, Checksum256, Checksum512, CompressionType, Connector, ExchangeState, ExplorerDefinition, ExtendedAsset, ExtendedSymbol, FetchProvider, Float128, Float32, Float64, HistoryAPI, Int, Int128, Int16, Int32, Int64, Int8, KeyType, KeyWeight, Logo, Name, types as P2P, P2PClient, PackedTransaction, PermissionLevel, PermissionLevelWeight, PowerUpAPI, PowerUpState, PrivateKey, PublicKey, RAMAPI, RAMState, REXAPI, REXState, Resources, Serializer, Signature, SignedTransaction, SimpleEnvelopeP2PProvider, Struct, TelosAccountObject, TelosAccountVoterInfo, TimePoint, TimePointSec, Transaction, TransactionExtension, TransactionHeader, TransactionReceipt, TypeAlias, UInt128, UInt16, UInt32, UInt64, UInt8, VarInt, VarUInt, Variant, WAXAccountObject, WAXAccountVoterInfo, WaitWeight, Weight, addressToWireName, arrayEquals, arrayEquatableEquals, arrayToHex, cancelable, chainIdsToIndices, chainLogos, hexToArray, isInstanceOf, secureRandom };
 //# sourceMappingURL=core.m.js.map

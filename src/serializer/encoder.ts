@@ -140,7 +140,7 @@ export function abiEncode(args: EncodeArgs): Bytes {
     }
     try {
         encodeAny(args.object, rootType, ctx)
-    } catch (error) {
+    } catch (error:any) {
         throw new EncodingError(ctx, error)
     }
     return Bytes.from(encoder.getData())

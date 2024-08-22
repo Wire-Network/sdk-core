@@ -15,3 +15,9 @@ export * as API from './api/types'
 export * from './p2p/client'
 export * from './p2p/provider'
 export * as P2P from './p2p/types'
+
+// common
+export * from './common/common-module'
+
+// resources
+export * from './resources/index-resources'
