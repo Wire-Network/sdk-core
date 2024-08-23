@@ -21,3 +21,6 @@ export * from './common/common-module'
 
 // resources
 export * from './resources/index-resources'
+
+// Crypto curves
+export * from './crypto/curves'

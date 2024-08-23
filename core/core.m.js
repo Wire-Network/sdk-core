@@ -145,33 +145,6 @@ function isInstanceOf(object, someClass) {
     }
     return isAlienInstance;
 }
-/**
- * Given a hex string of an address, returns a valid wire name. Takes the first and last 4 bytes ( 8 characters from each end ) and converts them to a base32 string.
- *
- * Note: This implementation has a nearly impossible chance of collisions. Reference: https://vanity-eth.tk/
- *
- * @param address Hex formatted string of an address. '0x' prefix is optional, will be pruned.
- * @returns A valid Wire name generated from the address.
- */
-function addressToWireName(address) {
-    if (![40, 42].includes(address.length))
-        throw new Error('not valid address length');
-    let addr = address.includes('0x') ? address.slice(2) : address;
-    if (addr[40] !== '0')
-        addr = addr.slice(0, -1) + '0';
-    const int = BigInt('0x' + addr.slice(0, 8) + addr.slice(-8));
-    const charMap = '.12345abcdefghijklmnopqrstuvwxyz';
-    const str = [];
-    let tmp = BigInt.asUintN(64, int);
-    for (let i = 0; i <= 12; ++i) {
-        const bigiAnd = BigInt(i === 0 ? 0x0f : 0x1f);
-        const idx = tmp & bigiAnd;
-        str[12 - i] = charMap[Number(idx.toString())];
-        const bigi = BigInt(i === 0 ? 4 : 5);
-        tmp = tmp >> bigi;
-    }
-    return str.join('').replace(/\.+$/g, '');
-}
 
 class Blob {
     /**
@@ -7007,5 +6980,5 @@ function divCeil(num, den) {
     return UInt128.from(v);
 }
 
-export { ABI, ABIDecoder, ABIEncoder, types$1 as API, APIClient, APIError, Action, Asset, Authority, BNPrecision, Base58, Blob, BlockId, BlockTimestamp, Bytes, Canceled, ChainAPI, ChainDefinition, ChainNames, Chains, Checksum160, Checksum256, Checksum512, CompressionType, Connector, ExchangeState, ExplorerDefinition, ExtendedAsset, ExtendedSymbol, FetchProvider, Float128, Float32, Float64, HistoryAPI, Int, Int128, Int16, Int32, Int64, Int8, KeyType, KeyWeight, Logo, Name, types as P2P, P2PClient, PackedTransaction, PermissionLevel, PermissionLevelWeight, PowerUpAPI, PowerUpState, PrivateKey, PublicKey, RAMAPI, RAMState, REXAPI, REXState, Resources, Serializer, Signature, SignedTransaction, SimpleEnvelopeP2PProvider, Struct, TelosAccountObject, TelosAccountVoterInfo, TimePoint, TimePointSec, Transaction, TransactionExtension, TransactionHeader, TransactionReceipt, TypeAlias, UInt128, UInt16, UInt32, UInt64, UInt8, VarInt, VarUInt, Variant, WAXAccountObject, WAXAccountVoterInfo, WaitWeight, Weight, addressToWireName, arrayEquals, arrayEquatableEquals, arrayToHex, cancelable, chainIdsToIndices, chainLogos, hexToArray, isInstanceOf, secureRandom };
+export { ABI, ABIDecoder, ABIEncoder, types$1 as API, APIClient, APIError, Action, Asset, Authority, BNPrecision, Base58, Blob, BlockId, BlockTimestamp, Bytes, Canceled, ChainAPI, ChainDefinition, ChainNames, Chains, Checksum160, Checksum256, Checksum512, CompressionType, Connector, ExchangeState, ExplorerDefinition, ExtendedAsset, ExtendedSymbol, FetchProvider, Float128, Float32, Float64, HistoryAPI, Int, Int128, Int16, Int32, Int64, Int8, KeyType, KeyWeight, Logo, Name, types as P2P, P2PClient, PackedTransaction, PermissionLevel, PermissionLevelWeight, PowerUpAPI, PowerUpState, PrivateKey, PublicKey, RAMAPI, RAMState, REXAPI, REXState, Resources, Serializer, Signature, SignedTransaction, SimpleEnvelopeP2PProvider, Struct, TelosAccountObject, TelosAccountVoterInfo, TimePoint, TimePointSec, Transaction, TransactionExtension, TransactionHeader, TransactionReceipt, TypeAlias, UInt128, UInt16, UInt32, UInt64, UInt8, VarInt, VarUInt, Variant, WAXAccountObject, WAXAccountVoterInfo, WaitWeight, Weight, arrayEquals, arrayEquatableEquals, arrayToHex, cancelable, chainIdsToIndices, chainLogos, getCurve, hexToArray, isInstanceOf, secureRandom };
 //# sourceMappingURL=core.m.js.map

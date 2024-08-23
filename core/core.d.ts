@@ -34,6 +34,7 @@
  * IN THE DESIGN, CONSTRUCTION, OPERATION OR MAINTENANCE OF ANY MILITARY FACILITY.
  */
 import BN from 'bn.js';
+import { ec } from 'elliptic';
 
 interface BuiltinTypes {
     string: string;
@@ -1506,15 +1507,6 @@ declare function secureRandom(length: number): Uint8Array;
 declare function isInstanceOf<T extends {
     new (...args: any[]): InstanceType<T>;
 }>(object: any, someClass: T): object is InstanceType<T>;
-/**
- * Given a hex string of an address, returns a valid wire name. Takes the first and last 4 bytes ( 8 characters from each end ) and converts them to a base32 string.
- *
- * Note: This implementation has a nearly impossible chance of collisions. Reference: https://vanity-eth.tk/
- *
- * @param address Hex formatted string of an address. '0x' prefix is optional, will be pruned.
- * @returns A valid Wire name generated from the address.
- */
-declare function addressToWireName(address: string): string;
 
 type Fetch$1 = (input: any, init?: any) => Promise<any>;
 /** Response to an API call.  */
@@ -2876,4 +2868,10 @@ declare class Resources {
     getSampledUsage(): Promise<SampleUsage>;
 }
 
-export { ABI, ABIDecoder, ABIDef, ABIEncoder, ABISerializable, ABISerializableConstructor, ABISerializableObject, ABISerializableType, types$1 as API, APIClient, APIClientOptions, APIError, APIErrorData, APIErrorDetail, APIMethods, APIProvider, APIResponse, Action, ActionFields, ActionType, AnyAction, AnyInt, AnyTransaction, AnyVariant, Asset, AssetType, Authority, AuthorityType, BNPrecision, Base58, Blob, BlobType, BlockId, BlockIdType, BlockTimestamp, Bytes, BytesEncoding, BytesType, Cancelable, Canceled, ChainAPI, ChainDefinition, ChainDefinitionArgs, ChainDefinitionType, ChainIndices, ChainNames, Chains, Checksum160, Checksum160Type, Checksum256, Checksum256Type, Checksum512, Checksum512Type, CompressionType, Connector, DivisionBehavior, ExchangeState, ExplorerDefinition, ExplorerDefinitionType, ExtendedAsset, ExtendedAssetType, ExtendedSymbol, ExtendedSymbolType, Fetch, FetchProvider, FetchProviderOptions, Float128, Float128Type, Float32, Float32Type, Float64, Float64Type, HistoryAPI, Int, Int128, Int128Type, Int16, Int16Type, Int32, Int32Type, Int64, Int64Type, Int8, Int8Type, KeyType, KeyWeight, LocaleDefinitions, Logo, LogoType, Name, NameType, OverflowBehavior, types as P2P, P2PClient, P2PClientOptions, P2PDataHandler, P2PErrorHandler, P2PEventMap, P2PHandler, P2PMessageHandler, P2PProvider, PackedTransaction, PackedTransactionType, PermissionLevel, PermissionLevelType, PermissionLevelWeight, PowerUpAPI, PowerUpState, PrivateKey, PrivateKeyType, PublicKey, PublicKeyType, RAMAPI, RAMState, REXAPI, REXState, Resources, SampleUsage, Serializer, Signature, SignatureType, SignedTransaction, SignedTransactionFields, SignedTransactionType, SimpleEnvelopeP2PProvider, Struct, StructConstructor, TelosAccountObject, TelosAccountVoterInfo, TimePoint, TimePointSec, TimePointType, Transaction, TransactionExtension, TransactionFields, TransactionHeader, TransactionHeaderFields, TransactionHeaderType, TransactionReceipt, TransactionType, TypeAlias, UInt128, UInt128Type, UInt16, UInt16Type, UInt32, UInt32Type, UInt64, UInt64Type, UInt8, UInt8Type, VarInt, VarIntType, VarUInt, VarUIntType, Variant, VariantConstructor, WAXAccountObject, WAXAccountVoterInfo, WaitWeight, Weight, addressToWireName, arrayEquals, arrayEquatableEquals, arrayToHex, cancelable, chainIdsToIndices, chainLogos, hexToArray, isInstanceOf, secureRandom };
+/**
+ * Get curve for key type.
+ * @internal
+ */
+declare function getCurve(type: string): ec;
+
+export { ABI, ABIDecoder, ABIDef, ABIEncoder, ABISerializable, ABISerializableConstructor, ABISerializableObject, ABISerializableType, types$1 as API, APIClient, APIClientOptions, APIError, APIErrorData, APIErrorDetail, APIMethods, APIProvider, APIResponse, Action, ActionFields, ActionType, AnyAction, AnyInt, AnyTransaction, AnyVariant, Asset, AssetType, Authority, AuthorityType, BNPrecision, Base58, Blob, BlobType, BlockId, BlockIdType, BlockTimestamp, Bytes, BytesEncoding, BytesType, Cancelable, Canceled, ChainAPI, ChainDefinition, ChainDefinitionArgs, ChainDefinitionType, ChainIndices, ChainNames, Chains, Checksum160, Checksum160Type, Checksum256, Checksum256Type, Checksum512, Checksum512Type, CompressionType, Connector, DivisionBehavior, ExchangeState, ExplorerDefinition, ExplorerDefinitionType, ExtendedAsset, ExtendedAssetType, ExtendedSymbol, ExtendedSymbolType, Fetch, FetchProvider, FetchProviderOptions, Float128, Float128Type, Float32, Float32Type, Float64, Float64Type, HistoryAPI, Int, Int128, Int128Type, Int16, Int16Type, Int32, Int32Type, Int64, Int64Type, Int8, Int8Type, KeyType, KeyWeight, LocaleDefinitions, Logo, LogoType, Name, NameType, OverflowBehavior, types as P2P, P2PClient, P2PClientOptions, P2PDataHandler, P2PErrorHandler, P2PEventMap, P2PHandler, P2PMessageHandler, P2PProvider, PackedTransaction, PackedTransactionType, PermissionLevel, PermissionLevelType, PermissionLevelWeight, PowerUpAPI, PowerUpState, PrivateKey, PrivateKeyType, PublicKey, PublicKeyType, RAMAPI, RAMState, REXAPI, REXState, Resources, SampleUsage, Serializer, Signature, SignatureType, SignedTransaction, SignedTransactionFields, SignedTransactionType, SimpleEnvelopeP2PProvider, Struct, StructConstructor, TelosAccountObject, TelosAccountVoterInfo, TimePoint, TimePointSec, TimePointType, Transaction, TransactionExtension, TransactionFields, TransactionHeader, TransactionHeaderFields, TransactionHeaderType, TransactionReceipt, TransactionType, TypeAlias, UInt128, UInt128Type, UInt16, UInt16Type, UInt32, UInt32Type, UInt64, UInt64Type, UInt8, UInt8Type, VarInt, VarIntType, VarUInt, VarUIntType, Variant, VariantConstructor, WAXAccountObject, WAXAccountVoterInfo, WaitWeight, Weight, arrayEquals, arrayEquatableEquals, arrayToHex, cancelable, chainIdsToIndices, chainLogos, getCurve, hexToArray, isInstanceOf, secureRandom };

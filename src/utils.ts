@@ -117,29 +117,3 @@ export function isInstanceOf<T extends {new (...args: any[]): InstanceType<T>}>(
     }
     return isAlienInstance
 }
-
-/**
- * Given a hex string of an address, returns a valid wire name. Takes the first and last 4 bytes ( 8 characters from each end ) and converts them to a base32 string.
- *
- * Note: This implementation has a nearly impossible chance of collisions. Reference: https://vanity-eth.tk/
- *
- * @param address Hex formatted string of an address. '0x' prefix is optional, will be pruned.
- * @returns A valid Wire name generated from the address.
- */
-export function addressToWireName(address: string) {
-    if (![40, 42].includes(address.length)) throw new Error('not valid address length')
-    let addr = address.includes('0x') ? address.slice(2) : address
-    if (addr[40] !== '0') addr = addr.slice(0, -1) + '0'
-    const int = BigInt('0x' + addr.slice(0, 8) + addr.slice(-8))
-    const charMap = '.12345abcdefghijklmnopqrstuvwxyz'
-    const str: any[] = []
-    let tmp = BigInt.asUintN(64, int)
-    for (let i = 0; i <= 12; ++i) {
-        const bigiAnd = BigInt(i === 0 ? 0x0f : 0x1f)
-        const idx = tmp & bigiAnd
-        str[12 - i] = charMap[Number(idx.toString())]
-        const bigi = BigInt(i === 0 ? 4 : 5)
-        tmp = tmp >> bigi
-    }
-    return str.join('').replace(/\.+$/g, '')
-}
