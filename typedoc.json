@@ -1,0 +1,81 @@
+{
+    "name": "SDK Core Documentation",
+    "tsconfig": "tsconfig.json",
+    "hideGenerator": true,
+    "includeVersion": true,
+    "excludeExternals": true,
+    "excludePrivate": true,
+    "excludeProtected": true,
+    "exclude": [
+        "**/index*",
+        "**/*.test.ts",
+        "**/*.test.js",
+        "**/node_modules/**"
+    ],
+    "readme": "README.md",
+    "theme": "default",
+    "out": "./reference",
+    "entryPoints": [
+        "./src/index.ts"
+    ],
+    "plugin": [
+        "typedoc-umlclass",
+        "@8hobbies/typedoc-plugin-404"
+    ],
+    "page404Content": "This page does not exist.",
+    "umlClassDiagram": {
+        "type": "detailed",
+        "location": "local",
+        "format": "svg",
+        "legendType": "only-included",
+        "hideShadow": false,
+        "style": {
+            "box": {
+                "backgroundColor": "fcf2cc",
+                "border": {
+                    "width": 2,
+                    "color": "5a0000",
+                    "radius": 0
+                }
+            },
+            "class": {
+                "name": {
+                    "font": {
+                        "bold": true
+                    }
+                }
+            },
+            "property": {
+                "name": {
+                    "font": {
+                        "bold": true
+                    }
+                },
+                "type": {
+                    "font": {
+                        "color": "26009966"
+                    }
+                }
+            },
+            "method": {
+                "parameter": {
+                    "name": {
+                        "font": {
+                            "color": "780000"
+                        }
+                    },
+                    "type": {
+                        "font": {
+                            "color": "26009966"
+                        }
+                    }
+                },
+                "returnType": {
+                    "font": {
+                        "color": "26009966"
+                    }
+                }
+            }
+        }
+    }
+}

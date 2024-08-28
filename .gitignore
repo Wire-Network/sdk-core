@@ -5,3 +5,5 @@ coverage/
 test/browser.html
 site/
 docs_build/
+reference/
+.idea/

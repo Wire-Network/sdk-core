@@ -17,7 +17,9 @@
         "src/*"
     ],
     "scripts": {
-        "prepare": "make"
+        "prepare": "make",
+        "docs-build": "typedoc ./src/index.ts && replace-in-files --string '=\"assets/' --replacement '=\"/assets/' ./docs/404.html"
+
     },
     "dependencies": {
         "bn.js": "^4.11.9",
@@ -29,6 +31,7 @@
         "tslib": "^2.1.0"
     },
     "devDependencies": {
+        "@8hobbies/typedoc-plugin-404": "^2.2.0",
         "@rollup/plugin-alias": "^4.0.3",
         "@rollup/plugin-commonjs": "^24.0.1",
         "@rollup/plugin-json": "^6.0.0",
@@ -57,7 +60,8 @@
         "rollup-plugin-dts": "^5.2.0",
         "ts-node": "^10.0.0",
         "tsconfig-paths": "^4.1.0",
-        "typedoc": "^0.23.10",
+        "typedoc": "^0.25.13",
+        "typedoc-umlclass": "^0.10.0",
         "typescript": "^4.1.2"
     }
 }
