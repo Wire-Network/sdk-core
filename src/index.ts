@@ -24,3 +24,6 @@ export * from './resources/index-resources';
 
 // Crypto curves
 export * from './crypto/curves';
+
+export * from './signing/index-signing';
+export * from './abi-cache';
