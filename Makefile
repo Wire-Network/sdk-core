@@ -51,7 +51,7 @@ publish: | distclean node_modules
 	@git diff-index --quiet HEAD || (echo "Uncommitted changes, please commit first" && exit 1)
 	@git fetch origin && git diff origin/npm-pub --quiet || (echo "Changes not pushed to origin, please push first" && exit 1)
 	@yarn config set version-tag-prefix "" && yarn config set version-git-message "Version %s"
-	@NPM_TOKEN=$${NPM_TOKEN} yarn publish --non-interactive && git push && git push --tags
+	@NPM_TOKEN=$${NPM_TOKEN} yarn publish --access restricted --non-interactive && git push && git push --tags
 
 docs-build: $(SRC_FILES) node_modules
 	@${BIN}/typedoc --out docs-build src/index.ts
