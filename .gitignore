@@ -4,6 +4,9 @@ coverage/
 .nyc_output/
 test/browser.html
 site/
-docs_build/
+docs-build/
 reference/
 .idea/
+core/
+docs_build/
+docs-build/

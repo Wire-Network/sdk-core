@@ -1,16 +1,16 @@
-import {Asset, Struct, UInt32, UInt8} from '../'
+import {Asset, Struct, UInt32, UInt8} from '../';
 
-import {Resources} from './index-resources'
-import {PowerUpStateResourceCPU} from './powerup/cpu'
-import {PowerUpStateResourceNET} from './powerup/net'
+import {Resources} from './index-resources';
+import {PowerUpStateResourceCPU} from './powerup/cpu';
+import {PowerUpStateResourceNET} from './powerup/net';
 
 @Struct.type('powerupstate')
 export class PowerUpState extends Struct {
-    @Struct.field('uint8') version!: UInt8
-    @Struct.field(PowerUpStateResourceNET) net!: PowerUpStateResourceNET
-    @Struct.field(PowerUpStateResourceCPU) cpu!: PowerUpStateResourceCPU
-    @Struct.field('uint32') powerup_days!: UInt32
-    @Struct.field('asset') min_powerup_fee!: Asset
+    @Struct.field('uint8') version!: UInt8;
+    @Struct.field(PowerUpStateResourceNET) net!: PowerUpStateResourceNET;
+    @Struct.field(PowerUpStateResourceCPU) cpu!: PowerUpStateResourceCPU;
+    @Struct.field('uint32') powerup_days!: UInt32;
+    @Struct.field('asset') min_powerup_fee!: Asset;
 }
 
 export class PowerUpAPI {
@@ -22,7 +22,7 @@ export class PowerUpAPI {
             scope: '',
             table: 'powup.state',
             type: PowerUpState,
-        })
-        return response.rows[0]
+        });
+        return response.rows[0];
     }
 }

@@ -1,17 +1,13 @@
-**NOTICE:** This was formerly the `@greymass/eosio` library distributed on [npmjs](https://www.npmjs.com/package/@greymass/eosio). Future distributions will be made using the new organization and namespace, and distributed as `@wharfkit/antelope` again on [npmjs](https://www.npmjs.com/package/@wharfkit/antelope).
-
-To update your codebase, remove the `@greymass/eosio` library and add the `@wharfkit/antelope` library, then replace all instances of `@greymass/eosio` with `@wharfkit/antelope` in all files.
-
-# @wharfkit/antelope
+# @wireio/core
 
 JavaScript library for working with Antelope powered blockchains (formerly EOSIO, still compatible with EOSIO).
 
-Avaiable on npm: https://www.npmjs.com/package/@wharfkit/antelope
+Avaiable on npm: https://www.npmjs.com/package/@wireio/core
 
 ## Install
 
 ```
-npm install @wharfkit/antelope
+npm install @wireio/core
 ```
 
 ## API Documentation
@@ -22,14 +18,14 @@ https://wharfkit.github.io/antelope/
 
 Documentation beyond the automatically generated API documentation above is currently incomplete. Until full documentation is complete, the tests themselves provide good reference material on how to do nearly everything.
 
-https://github.com/wharfkit/antelope/tree/master/test
+https://github.com/Wire-Network/sdk-core/tree/master/test
 
 More:
 
--   Using APIs: https://github.com/wharfkit/antelope/blob/master/test/api.ts
--   Serialization: https://github.com/wharfkit/antelope/blob/master/test/serializer.ts
--   Crypto Operations: https://github.com/wharfkit/antelope/blob/master/test/crypto.ts
--   Primitive Data Types: https://github.com/wharfkit/antelope/blob/master/test/chain.ts
+-   Using APIs: https://github.com/Wire-Network/sdk-core/blob/master/test/api.ts
+-   Serialization: https://github.com/Wire-Network/sdk-core/blob/master/test/serializer.ts
+-   Crypto Operations: https://github.com/Wire-Network/sdk-core/blob/master/test/crypto.ts
+-   Primitive Data Types: https://github.com/Wire-Network/sdk-core/blob/master/test/chain.ts
 
 ## Reporting Issues
 
@@ -71,18 +67,19 @@ make test
 make coverage
 ```
 
-The report for the current version can also be found at: https://wharfkit.github.io/antelope/coverage/
-
 ### Run the test suite in a browser:
 
 ```
 make browser-test
 ```
 
-The browser test suite for the current version of the library is available at: https://wharfkit.github.io/antelope/tests.html
-
 ## Debugging
 
 Instructions and notes on debugging typescript in your IDE. Explains how to match the Mocha test configuration found in the Makefile.
 
 [Notes on setting up IDE Debuggers](docs/IDE_Debug.md)
+
+
+## License
+
+[FSL-1.1-Apache-2.0](./LICENSE.md)

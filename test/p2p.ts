@@ -1,4 +1,4 @@
-import {assert} from 'chai'
+import {assert} from 'chai';
 import {
     Bytes,
     P2P,
@@ -8,27 +8,29 @@ import {
     PackedTransaction,
     Serializer,
     SimpleEnvelopeP2PProvider,
-} from '$lib'
-import {MockP2PProvider} from './utils/mock-p2p-provider'
+} from '$lib';
+import {MockP2PProvider} from './utils/mock-p2p-provider';
 
 suite('p2p', function () {
     const makeMockClient = (
         enveloped: boolean,
         additionalOpts?: Partial<P2PClientOptions>
     ): [P2PClient, MockP2PProvider] => {
-        const mockProvider = new MockP2PProvider()
-        let useProvider: P2PProvider = mockProvider
+        const mockProvider = new MockP2PProvider();
+        let useProvider: P2PProvider = mockProvider;
+
         if (enveloped) {
-            useProvider = new SimpleEnvelopeP2PProvider(mockProvider)
+            useProvider = new SimpleEnvelopeP2PProvider(mockProvider);
         }
-        const client = new P2PClient({...additionalOpts, provider: useProvider})
+
+        const client = new P2PClient({...additionalOpts, provider: useProvider});
 
         client.on('error', (e) => {
-            assert.fail(e)
-        })
+            assert.fail(e);
+        });
 
-        return [client, mockProvider]
-    }
+        return [client, mockProvider];
+    };
 
     const testMessages: Array<{message: P2P.NetMessage['value']; data: Bytes}> = [
         {
@@ -153,117 +155,123 @@ suite('p2p', function () {
                 'hex'
             ),
         },
-    ]
+    ];
 
     for (const {message, data} of testMessages) {
-        const vmessage = P2P.NetMessage.from(message)
-        const vdata = new Uint8Array(data.length + 1)
-        const vdataView = new DataView(vdata.buffer)
-        vdataView.setUint8(0, vmessage.variantIdx)
-        vdata.set(data.array, 1)
+        const vmessage = P2P.NetMessage.from(message);
+        const vdata = new Uint8Array(data.length + 1);
+        const vdataView = new DataView(vdata.buffer);
+        vdataView.setUint8(0, vmessage.variantIdx);
+        vdata.set(data.array, 1);
 
-        const socketData = new Uint8Array(vdata.length + 4)
-        const socketDataView = new DataView(socketData.buffer)
-        socketDataView.setUint32(0, vdata.length, true)
-        socketData.set(vdata, 4)
+        const socketData = new Uint8Array(vdata.length + 4);
+        const socketDataView = new DataView(socketData.buffer);
+        socketDataView.setUint32(0, vdata.length, true);
+        socketData.set(vdata, 4);
         test(`receive ${vmessage.variantName}`, async function () {
-            const [client, mockProvider] = makeMockClient(false)
+            const [client, mockProvider] = makeMockClient(false);
 
-            let called = false
+            let called = false;
             client.on('message', (message) => {
                 assert.deepEqual(
                     JSON.parse(JSON.stringify(message)),
                     JSON.parse(JSON.stringify(vmessage))
-                )
-                called = true
-            })
+                );
+                called = true;
+            });
 
-            mockProvider.emit('data', [vdata])
-            assert.equal(called, true)
-        })
+            mockProvider.emit('data', [vdata]);
+            assert.equal(called, true);
+        });
 
         test(`receive socket ${vmessage.variantName}`, async function () {
-            const [client, mockProvider] = makeMockClient(true)
+            const [client, mockProvider] = makeMockClient(true);
 
-            let called = false
+            let called = false;
             client.on('message', (message) => {
                 assert.deepEqual(
                     JSON.parse(JSON.stringify(message)),
                     JSON.parse(JSON.stringify(vmessage))
-                )
-                called = true
-            })
+                );
+                called = true;
+            });
 
-            const pivot = Math.floor(socketData.byteLength / 2)
-            mockProvider.emit('data', [socketData.slice(0, pivot)])
-            assert.equal(called, false)
-            mockProvider.emit('data', [socketData.slice(pivot)])
-            assert.equal(called, true)
-        })
+            const pivot = Math.floor(socketData.byteLength / 2);
+            mockProvider.emit('data', [socketData.slice(0, pivot)]);
+            assert.equal(called, false);
+            mockProvider.emit('data', [socketData.slice(pivot)]);
+            assert.equal(called, true);
+        });
 
         test(`send ${vmessage.variantName}`, async function () {
-            const [client, mockProvider] = makeMockClient(false)
+            const [client, mockProvider] = makeMockClient(false);
 
-            let sentData = undefined as undefined | Uint8Array
+            let sentData = undefined as undefined | Uint8Array;
+
             mockProvider.write = (data: Uint8Array) => {
-                sentData = data
-            }
+                sentData = data;
+            };
 
-            client.send(message)
+            client.send(message);
 
-            assert.notEqual(sentData, undefined)
-            assert.equal(sentData!.toString(), vdata.toString())
-        })
+            assert.notEqual(sentData, undefined);
+            assert.equal(sentData!.toString(), vdata.toString());
+        });
 
         test(`send socket ${vmessage.variantName}`, async function () {
-            const [client, mockProvider] = makeMockClient(true)
+            const [client, mockProvider] = makeMockClient(true);
 
-            let sentData = undefined as undefined | Uint8Array
+            let sentData = undefined as undefined | Uint8Array;
+
             mockProvider.write = (data: Uint8Array) => {
-                sentData = data
-            }
+                sentData = data;
+            };
 
-            client.send(message)
+            client.send(message);
 
-            assert.notEqual(sentData, undefined)
-            assert.equal(sentData!.toString(), socketData.toString())
-        })
+            assert.notEqual(sentData, undefined);
+            assert.equal(sentData!.toString(), socketData.toString());
+        });
     }
 
     test('heartbeat trigger', async function () {
-        let setTimeoutCalled = false
-        let fireTimeout = () => {}
+        let setTimeoutCalled = false;
+
+        let fireTimeout = () => {};
+
         const setTimeoutMock: P2PClientOptions['setTimeoutImpl'] = (
             handler: any,
             timeout?: number | undefined,
             ...args: any[]
         ) => {
-            assert.equal(timeout, 6789)
-            setTimeoutCalled = true
-            fireTimeout = () => {
-                handler(...args)
-            }
+            assert.equal(timeout, 6789);
+            setTimeoutCalled = true;
 
-            return 0
-        }
+            fireTimeout = () => {
+                handler(...args);
+            };
+
+            return 0;
+        };
 
         const [_, mockProvider] = makeMockClient(false, {
             setTimeoutImpl: setTimeoutMock,
             heartbeatTimoutMs: 6789,
-        })
+        });
 
-        assert.equal(setTimeoutCalled, true)
+        assert.equal(setTimeoutCalled, true);
 
-        let sentData = undefined as undefined | Uint8Array
+        let sentData = undefined as undefined | Uint8Array;
+
         mockProvider.write = (data: Uint8Array) => {
-            sentData = data
-        }
+            sentData = data;
+        };
 
-        fireTimeout()
-        assert.notEqual(sentData, undefined)
-        const message = Serializer.decode({type: P2P.NetMessage, data: sentData})
-        assert.equal(message.variantName, 'time_message')
-    })
+        fireTimeout();
+        assert.notEqual(sentData, undefined);
+        const message = Serializer.decode({type: P2P.NetMessage, data: sentData});
+        assert.equal(message.variantName, 'time_message');
+    });
 
     test('block header getters', function () {
         const block = P2P.SignedBlock.from({
@@ -279,11 +287,11 @@ suite('p2p', function () {
             transactions: [],
             header_extensions: [],
             block_extensions: [],
-        })
+        });
         assert.equal(
             String(block.id),
             '000000075fbe6bbad86e424962a190e8309394b7bff4bf3e16b0a2a71e5a617c'
-        )
-        assert.equal(block.blockNum, 7)
-    })
-})
+        );
+        assert.equal(block.blockNum, 7);
+    });
+});

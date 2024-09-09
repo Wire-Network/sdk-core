@@ -12,13 +12,7 @@
         "sourceMap": true,
         "strict": true,
         "useUnknownInCatchVariables": false,
-        "target": "es2020",
-        "paths": {
-            // "@wire-sdk/core": ["../sdk-core"],
-            "@wire-sdk/session": ["../sdk-session"],
-            "@wire-sdk/account": ["../sdk-account"],
-            "@wire-sdk/contract": ["../sdk-contract"],
-        },
+        "target": "es2020"
     },
     "include": ["src/**/*"],
     "typedocOptions": {
@@ -28,13 +22,7 @@
         "exclude": [
             "types/jsx.d.ts",
             "**/*+(e2e|spec|index).ts",
-            "**/*spec.tsx",
             "**/*.model.ts",
-            "**/environment/*.ts",
-            "**/components.d.ts",
-            "**/components/common/*",
-            "**/*+(e2e|spec|index).ts",
-            "**/*spec.tsx",
             "**/*.model.ts",
             "**/environment/*.ts",
             "**/core.d.ts"

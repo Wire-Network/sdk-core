@@ -1,6 +1,6 @@
 # Change Log
 
-For @wharfkit/antelope (a.k.a. eosio-core). Follows semver versioning (currently at major 0 so breaking changes happen in minor versions)
+For @wireio/core (based on `@wharfkit/antelope` a.k.a. eosio-core). Follows semver versioning (currently at major 0 so breaking changes happen in minor versions)
 
 ## 0.6.0
 

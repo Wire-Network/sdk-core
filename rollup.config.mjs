@@ -9,10 +9,10 @@ import typescript from '@rollup/plugin-typescript'
 const __dirname = path.dirname(new URL(import.meta.url).pathname)
 const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json')))
 
-const license = fs.readFileSync('LICENSE').toString('utf-8').trim()
+const license = fs.readFileSync('LICENSE.md').toString('utf-8').trim()
 const banner = `
 /**
- * @wire-sdk/core v${pkg.version}
+ * @wireio/core v${pkg.version}
  * ${pkg.homepage}
  *
  * @license
