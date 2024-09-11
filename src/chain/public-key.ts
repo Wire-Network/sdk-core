@@ -85,7 +85,7 @@ export class PublicKey implements ABISerializableObject {
      * Return Antelope/EOSIO legacy (`EOS<base58data>`) formatted key.
      * @throws If the key type isn't `K1` or 'EM'.
      */
-    toLegacyString(prefix = 'EOS') {
+    toLegacyString(prefix = 'SYS') {
         if (this.type !== KeyType.K1 && this.type !== KeyType.EM) {
             throw new Error('Unable to create legacy formatted string for non-K1/EM key');
         }

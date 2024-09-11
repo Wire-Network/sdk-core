@@ -28,7 +28,7 @@ export class Blob implements ABISerializableObject {
             return new this(new Uint8Array(Buffer.from(value, 'base64')));
         }
 
-        // fix up base64 padding from nodeos
+        // fix up base64 padding from nodeop
         switch (value.length % 4) {
             case 2:
                 value += '==';

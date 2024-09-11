@@ -40,7 +40,7 @@ export class APIError extends Error {
             error.details[0].file === 'http_plugin.cpp' &&
             error.details[0].message.slice(0, 11) === 'unknown key'
         ) {
-            // fix cryptic error messages from nodeos for missing accounts
+            // fix cryptic error messages from nodeop for missing accounts
             return 'Account not found';
         } else if (error.what === 'unspecified' && error.details && error.details.length > 0) {
             return error.details[0].message;
@@ -71,19 +71,19 @@ export class APIError extends Error {
         this.response = response;
     }
 
-    /** The nodeos error object. */
+    /** The nodeop error object. */
     get error() {
         const {json} = this.response;
         return (json ? json.error : undefined) as APIErrorData | undefined;
     }
 
-    /** The nodeos error name, e.g. `tx_net_usage_exceeded` */
+    /** The nodeop error name, e.g. `tx_net_usage_exceeded` */
     get name() {
         const {error} = this;
         return error ? error.name : 'unspecified';
     }
 
-    /** The nodeos error code, e.g. `3080002`. */
+    /** The nodeop error code, e.g. `3080002`. */
     get code() {
         const {error} = this;
         return error ? error.code : 0;

@@ -1,5 +1,5 @@
 /**
- * EOSIO Signing Request (ESR).
+ * SYSIO Signing Request (SSR).
  */
 
 import {
@@ -1431,13 +1431,13 @@ export class IdentityProof extends Struct {
     }
 
     /**
-     * Create a new instance from an EOSIO authorization header string.
-     * "EOSIO <base64payload>"
+     * Create a new instance from an SYSIO authorization header string.
+     * "SYSIO <base64payload>"
      */
     static fromString(string: string) {
         const parts = string.split(' ');
 
-        if (parts.length !== 2 || parts[0] !== 'EOSIO') {
+        if (parts.length !== 2 || parts[0] !== 'SYSIO') {
             throw new Error('Invalid IdentityProof string');
         }
 
@@ -1502,10 +1502,10 @@ export class IdentityProof extends Struct {
     }
 
     /**
-     * Encode the proof to an `EOSIO` auth header string.
+     * Encode the proof to an `SYSIO` auth header string.
      */
     toString() {
         const data = Serializer.encode({object: this});
-        return `EOSIO ${Base64u.encode(data.array, false)}`;
+        return `SYSIO ${Base64u.encode(data.array, false)}`;
     }
 }

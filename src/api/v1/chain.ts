@@ -342,7 +342,7 @@ export class ChainAPI {
             if (json) {
                 rows = rows.map((value) => {
                     if (typeof value === 'string' && Bytes.isBytes(value)) {
-                        // this handles the case where nodeos bails on abi decoding and just returns a hex string
+                        // this handles the case where nodeop bails on abi decoding and just returns a hex string
                         return Serializer.decode({data: Bytes.from(value), type});
                     } else {
                         return Serializer.decode({object: value, type});

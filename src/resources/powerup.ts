@@ -18,7 +18,7 @@ export class PowerUpAPI {
 
     async get_state(): Promise<PowerUpState> {
         const response = await this.parent.api.v1.chain.get_table_rows({
-            code: 'eosio',
+            code: 'sysio',
             scope: '',
             table: 'powup.state',
             type: PowerUpState,

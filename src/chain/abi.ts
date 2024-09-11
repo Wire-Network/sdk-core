@@ -9,7 +9,7 @@ export type ABIDef = string | Partial<ABI.Def> | ABI | Blob;
 
 export class ABI implements ABISerializableObject {
     static abiName = 'abi';
-    static version = 'eosio::abi/1.1';
+    static version = 'sysio::abi/1.1';
 
     version: string;
     /// List of type aliases.

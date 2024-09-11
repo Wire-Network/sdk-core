@@ -85,7 +85,7 @@ suite('api v1', function () {
     test('FetchProvider headers', async function () {
         const test = new APIClient({
             provider: new MockProvider('https://wax.greymass.com', {
-                reqHeaders: {'X-Test': 'true'},
+                reqHeaders: {'X-test': 'true'},
             }),
         });
         const defaultresponse = await test.provider.call({
@@ -138,6 +138,8 @@ suite('api v1', function () {
         assert.instanceOf(response, API.v1.GetRawAbiResponse);
         assert.instanceOf(response.account_name, Name);
         assert.equal(response.account_name, 'eosio.token');
+
+        console.log(response.code_hash);
         assert.instanceOf(response.code_hash, Checksum256);
         assert.equal(
             response.code_hash,
@@ -721,7 +723,7 @@ suite('api v1', function () {
             '1656616c69646174696f6e20686173207061737365642e'
         );
 
-        // Test decoding raw hex data as string
+        // test decoding raw hex data as string
         const decoded = Serializer.decode({
             type: 'string',
             data: Bytes.from(res.processed.action_traces[0].return_value_hex_data),
