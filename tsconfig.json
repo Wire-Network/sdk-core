@@ -14,5 +14,18 @@
         "useUnknownInCatchVariables": false,
         "target": "es2020"
     },
-    "include": ["src/**/*"]
+    "include": ["src/**/*"],
+    "typedocOptions": {
+        "excludePrivate": true,
+        "excludeProtected": true,
+        "excludeInternal": true,
+        "exclude": [
+            "types/jsx.d.ts",
+            "**/*+(e2e|spec|index).ts",
+            "**/*.model.ts",
+            "**/*.model.ts",
+            "**/environment/*.ts",
+            "**/core.d.ts"
+        ],
+    }
 }

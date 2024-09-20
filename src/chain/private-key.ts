@@ -1,10 +1,10 @@
-import {Base58} from '../base58'
-import {isInstanceOf} from '../utils'
+import {Base58} from '../base58';
+import {isInstanceOf} from '../utils';
 
-import {getPublic} from '../crypto/get-public'
-import {sharedSecret} from '../crypto/shared-secret'
-import {sign} from '../crypto/sign'
-import {generate} from '../crypto/generate'
+import {getPublic} from '../crypto/get-public';
+import {sharedSecret} from '../crypto/shared-secret';
+import {sign} from '../crypto/sign';
+import {generate} from '../crypto/generate';
 
 import {
     Bytes,
@@ -15,20 +15,20 @@ import {
     KeyType,
     PublicKey,
     Signature,
-} from '../'
+} from '../';
 
-export type PrivateKeyType = PrivateKey | string
+export type PrivateKeyType = PrivateKey | string;
 
 export class PrivateKey {
-    type: KeyType
-    data: Bytes
+    type: KeyType;
+    data: Bytes;
 
     /** Create PrivateKey object from representing types. */
     static from(value: PrivateKeyType) {
         if (isInstanceOf(value, PrivateKey)) {
-            return value
+            return value;
         } else {
-            return this.fromString(value)
+            return this.fromString(value);
         }
     }
 
@@ -38,10 +38,11 @@ export class PrivateKey {
      */
     static fromString(string: string, ignoreChecksumError = false) {
         try {
-            const {type, data} = decodeKey(string)
-            return new this(type, data)
+            const {type, data} = decodeKey(string);
+            return new this(type, data);
         } catch (error: any) {
-            error.message = `Invalid private key (${error.message})`
+            error.message = `Invalid private key (${error.message})`;
+
             if (
                 ignoreChecksumError &&
                 isInstanceOf(error, Base58.DecodingError) &&
@@ -51,15 +52,18 @@ export class PrivateKey {
                     ? KeyType.R1
                     : string.startsWith('PVT_EM')
                     ? KeyType.EM
-                    : KeyType.K1
-                const data = new Bytes(error.info.data)
+                    : KeyType.K1;
+                const data = new Bytes(error.info.data);
+
                 if (data.length === 33) {
-                    data.dropFirst()
+                    data.dropFirst();
                 }
-                data.zeropad(32, true)
-                return new this(type, data)
+
+                data.zeropad(32, true);
+                return new this(type, data);
             }
-            throw error
+
+            throw error;
         }
     }
 
@@ -68,7 +72,7 @@ export class PrivateKey {
      * @throws If a secure random source isn't available.
      */
     static generate(type: KeyType | string) {
-        return new PrivateKey(KeyType.from(type), new Bytes(generate(type)))
+        return new PrivateKey(KeyType.from(type), new Bytes(generate(type)));
     }
 
     /** @internal */
@@ -77,10 +81,11 @@ export class PrivateKey {
             (type === KeyType.K1 || type === KeyType.R1 || type === KeyType.EM) &&
             data.length !== 32
         ) {
-            throw new Error('Invalid private key length')
+            throw new Error('Invalid private key length');
         }
-        this.type = type
-        this.data = data
+
+        this.type = type;
+        this.data = data;
     }
 
     /**
@@ -88,8 +93,8 @@ export class PrivateKey {
      * @throws If the key type isn't R1 or K1.
      */
     signDigest(digest: Checksum256Type) {
-        digest = Checksum256.from(digest)
-        return Signature.from(sign(this.data.array, digest.array, this.type))
+        digest = Checksum256.from(digest);
+        return Signature.from(sign(this.data.array, digest.array, this.type));
     }
 
     /**
@@ -97,7 +102,7 @@ export class PrivateKey {
      * @throws If the key type isn't R1 or K1.
      */
     signMessage(message: BytesType) {
-        return this.signDigest(Checksum256.hash(message))
+        return this.signDigest(Checksum256.hash(message));
     }
 
     /**
@@ -105,8 +110,8 @@ export class PrivateKey {
      * @throws If the key type isn't R1 or K1.
      */
     sharedSecret(publicKey: PublicKey) {
-        const shared = sharedSecret(this.data.array, publicKey.data.array, this.type)
-        return Checksum512.hash(shared)
+        const shared = sharedSecret(this.data.array, publicKey.data.array, this.type);
+        return Checksum512.hash(shared);
     }
 
     /**
@@ -114,8 +119,8 @@ export class PrivateKey {
      * @throws If the key type isn't R1 or K1.
      */
     toPublic() {
-        const compressed = getPublic(this.data.array, this.type)
-        return PublicKey.from({compressed, type: this.type})
+        const compressed = getPublic(this.data.array, this.type);
+        return PublicKey.from({compressed, type: this.type});
     }
 
     /**
@@ -124,53 +129,62 @@ export class PrivateKey {
      */
     toWif() {
         if (this.type !== KeyType.K1 && this.type !== KeyType.EM) {
-            throw new Error('Unable to generate WIF for non-k1/em key')
+            throw new Error('Unable to generate WIF for non-k1/em key');
         }
-        return Base58.encodeCheck(Bytes.from([0x80]).appending(this.data))
+
+        return Base58.encodeCheck(Bytes.from([0x80]).appending(this.data));
     }
 
     /**
      * Return the key in Antelope/EOSIO PVT_<type>_<base58check> format.
      */
     toString() {
-        return `PVT_${this.type}_${Base58.encodeRipemd160Check(this.data, this.type)}`
+        return `PVT_${this.type}_${Base58.encodeRipemd160Check(this.data, this.type)}`;
     }
 
     toJSON() {
-        return this.toString()
+        return this.toString();
     }
 }
 
 /** @internal */
 function decodeKey(value: string) {
-    const type = typeof value
+    const type = typeof value;
+
     if (type !== 'string') {
-        throw new Error(`Expected string, got ${type}`)
+        throw new Error(`Expected string, got ${type}`);
     }
+
     if (value.startsWith('PVT_')) {
         // Antelope/EOSIO format
-        const parts = value.split('_')
+        const parts = value.split('_');
+
         if (parts.length !== 3) {
-            throw new Error('Invalid PVT format')
+            throw new Error('Invalid PVT format');
         }
-        const type = KeyType.from(parts[1])
-        let size: number | undefined
+
+        const type = KeyType.from(parts[1]);
+        let size: number | undefined;
+
         switch (type) {
             case KeyType.K1:
             case KeyType.R1:
             case KeyType.EM:
-                size = 32
-                break
+                size = 32;
+                break;
         }
-        const data = Base58.decodeRipemd160Check(parts[2], size, type)
-        return {type, data}
+
+        const data = Base58.decodeRipemd160Check(parts[2], size, type);
+        return {type, data};
     } else {
         // WIF format
-        const type = KeyType.K1
-        const data = Base58.decodeCheck(value)
+        const type = KeyType.K1;
+        const data = Base58.decodeCheck(value);
+
         if (data.array[0] !== 0x80) {
-            throw new Error('Invalid WIF')
+            throw new Error('Invalid WIF');
         }
-        return {type, data: data.droppingFirst()}
+
+        return {type, data: data.droppingFirst()};
     }
 }

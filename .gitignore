@@ -4,4 +4,8 @@ coverage/
 .nyc_output/
 test/browser.html
 site/
-docs_build/
+.idea/
+core/
+*.tgz
+build/
+.env

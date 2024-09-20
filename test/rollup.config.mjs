@@ -92,7 +92,7 @@ export default [
             }),
             alias({
                 entries: [
-                    {find: '$lib', replacement: path.join(__dirname, '..', 'lib/antelope.m.js')},
+                    {find: '$lib', replacement: path.join(__dirname, '..', 'lib/core.m.js')},
                     {find: './utils/mock-provider', replacement: './utils/browser-provider.ts'},
                 ],
             }),
