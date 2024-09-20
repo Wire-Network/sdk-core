@@ -1,3 +1,11 @@
+include .env
+export $(shell sed 's/=.*//' .env)
+
+PACKAGE_NAME := $(shell jq -r .name package.json)
+PACKAGE_VERSION := $(shell jq -r .version package.json)
+PUBLISH_DATE := $(shell date "+%Y-%m-%d %H:%M:%S")
+
+
 SRC_FILES := $(shell find src -name '*.ts')
 TEST_FILES := $(wildcard test/*.ts)
 BIN := ./node_modules/.bin
@@ -47,28 +55,33 @@ node_modules:
 
 .PHONY: publish
 publish: | distclean node_modules
+	@if [ -z "$${NPM_TOKEN}" ]; then echo "NPM token is not set."; exit 1; fi
 	@git diff-index --quiet HEAD || (echo "Uncommitted changes, please commit first" && exit 1)
-	@git fetch origin && git diff origin/master --quiet || (echo "Changes not pushed to origin, please push first" && exit 1)
+	@git fetch origin && git diff origin/npm-pub --quiet || (echo "Changes not pushed to origin, please push first" && exit 1)
 	@yarn config set version-tag-prefix "" && yarn config set version-git-message "Version %s"
-	@yarn publish && git push && git push --tags
+	@NPM_TOKEN=$${NPM_TOKEN} yarn publish --access restricted --non-interactive 
+	@git push && git push --tags
+	@curl -X POST -H 'Content-type: application/json' --data '{"channel": "#npm-events","blocks":[{"type": "section","text": {"type": "mrkdwn","text": "*New Deployment!*"}},{"type": "section","fields": [{"type": "mrkdwn","text": "*Package Name:*\n$(PACKAGE_NAME)"},{"type": "mrkdwn","text": "*Version:*\n$(PACKAGE_VERSION)"}]},{"type": "divider"},{"type": "section","text": {"type": "mrkdwn","text": "Published on: $(PUBLISH_DATE)"}}]}' $(SLACK_WEBHOOK_URL)
 
-docs_build: $(SRC_FILES) node_modules
-	@${BIN}/typedoc --out docs_build \
-		--excludeInternal --excludePrivate --excludeProtected \
-		--includeVersion --readme none \
-		src/index.ts
+.PHONY: docs
+docs: build/docs
+	@open build/docs/index.html
 
+build/docs: $(SRC_FILES) node_modules
+	@${BIN}/typedoc --out build/docs src/index.ts
+	@rsync -av --delete build/docs/ docs/
+	
 .PHONY: deploy-site
-deploy-site: | clean docs_build test/browser.html test-coverage
+deploy-site: | clean docs-build test/browser.html test-coverage
 	@mkdir -p site
-	@cp -r docs_build/* site/
+	@cp -r docs-build/* site/
 	@cp -r test/browser.html site/tests.html
 	@cp -r coverage/ site/coverage/
-	@${BIN}/gh-pages -d site
+	# @${BIN}/gh-pages -d site
 
 .PHONY: clean
 clean:
-	rm -rf lib/ coverage/ docs_build/ site/ test/browser.html
+	rm -rf lib/ coverage/ docs-build/ site/ test/browser.html
 
 .PHONY: distclean
 distclean: clean

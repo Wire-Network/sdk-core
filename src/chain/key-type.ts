@@ -10,35 +10,37 @@ export namespace KeyType {
     export function indexFor(value: KeyType) {
         switch (value) {
             case KeyType.K1:
-                return 0
+                return 0;
             case KeyType.R1:
-                return 1
+                return 1;
             case KeyType.WA:
-                return 2
+                return 2;
             case KeyType.EM:
-                return 3
+                return 3;
             default:
-                throw new Error(`Unknown curve type: ${value}`)
+                throw new Error(`Unknown curve type: ${value}`);
         }
     }
     export function from(value: number | string) {
-        let index: number
+        let index: number;
+
         if (typeof value !== 'number') {
-            index = KeyType.indexFor(value as KeyType)
+            index = KeyType.indexFor(value as KeyType);
         } else {
-            index = value
+            index = value;
         }
+
         switch (index) {
             case 0:
-                return KeyType.K1
+                return KeyType.K1;
             case 1:
-                return KeyType.R1
+                return KeyType.R1;
             case 2:
-                return KeyType.WA
+                return KeyType.WA;
             case 3:
-                return KeyType.EM
+                return KeyType.EM;
             default:
-                throw new Error('Unknown curve type')
+                throw new Error('Unknown curve type');
         }
     }
 }

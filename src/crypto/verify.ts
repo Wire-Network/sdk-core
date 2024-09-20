@@ -1,4 +1,4 @@
-import {getCurve} from './curves'
+import {getCurve} from './curves';
 
 /**
  * Verify signature using message and public key.
@@ -10,8 +10,8 @@ export function verify(
     pubkey: Uint8Array,
     type: string
 ) {
-    const curve = getCurve(type)
-    const r = signature.subarray(1, 33)
-    const s = signature.subarray(33)
-    return curve.verify(message, {r, s}, pubkey as any)
+    const curve = getCurve(type);
+    const r = signature.subarray(1, 33);
+    const s = signature.subarray(33);
+    return curve.verify(message, {r, s}, pubkey as any);
 }

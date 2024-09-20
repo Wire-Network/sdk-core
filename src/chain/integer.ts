@@ -1,15 +1,15 @@
-import BN from 'bn.js'
+import BN from 'bn.js';
 
-import {ABISerializableObject} from '../serializer/serializable'
-import {ABIDecoder} from '../serializer/decoder'
-import {ABIEncoder} from '../serializer/encoder'
-import {isInstanceOf, secureRandom} from '../utils'
+import {ABISerializableObject} from '../serializer/serializable';
+import {ABIDecoder} from '../serializer/decoder';
+import {ABIEncoder} from '../serializer/encoder';
+import {isInstanceOf, secureRandom} from '../utils';
 
-type IntType = Int | number | string | BN
+type IntType = Int | number | string | BN;
 
 interface IntDescriptor {
-    isSigned: boolean
-    byteWidth: number
+    isSigned: boolean;
+    byteWidth: number;
 }
 
 /**
@@ -18,7 +18,7 @@ interface IntDescriptor {
  * - `truncate`: Truncates or extends bit-pattern with sign extension (C++11 behavior).
  * - `clamp`: Clamps the value within the supported range.
  */
-export type OverflowBehavior = 'throw' | 'truncate' | 'clamp'
+export type OverflowBehavior = 'throw' | 'truncate' | 'clamp';
 
 /**
  * How to handle remainder when dividing integers.
@@ -26,7 +26,7 @@ export type OverflowBehavior = 'throw' | 'truncate' | 'clamp'
  * - `round`: Round to nearest integer.
  * - `ceil`: Round up to nearest integer.
  */
-export type DivisionBehavior = 'floor' | 'round' | 'ceil'
+export type DivisionBehavior = 'floor' | 'round' | 'ceil';
 
 /**
  * Binary integer with the underlying value represented by a BN.js instance.
@@ -36,33 +36,33 @@ export type DivisionBehavior = 'floor' | 'round' | 'ceil'
  *       convert to a JavaScript number first.
  */
 export class Int implements ABISerializableObject {
-    static abiName = '__int'
-    static isSigned: boolean
-    static byteWidth: number
+    static abiName = '__int';
+    static isSigned: boolean;
+    static byteWidth: number;
 
     /** Largest value that can be represented by this integer type. */
     static get max() {
-        return new BN(2).pow(new BN(this.byteWidth * 8 - (this.isSigned ? 1 : 0))).isubn(1)
+        return new BN(2).pow(new BN(this.byteWidth * 8 - (this.isSigned ? 1 : 0))).isubn(1);
     }
 
     /** Smallest value that can be represented by this integer type. */
     static get min() {
-        return this.isSigned ? this.max.ineg().isubn(1) : new BN(0)
+        return this.isSigned ? this.max.ineg().isubn(1) : new BN(0);
     }
 
     /** Add `lhs` to `rhs` and return the resulting value. */
     static add(lhs: Int, rhs: Int, overflow: OverflowBehavior = 'truncate'): Int {
-        return Int.operator(lhs, rhs, overflow, (a, b) => a.add(b))
+        return Int.operator(lhs, rhs, overflow, (a, b) => a.add(b));
     }
 
     /** Add `lhs` to `rhs` and return the resulting value. */
     static sub(lhs: Int, rhs: Int, overflow?: OverflowBehavior): Int {
-        return Int.operator(lhs, rhs, overflow, (a, b) => a.sub(b))
+        return Int.operator(lhs, rhs, overflow, (a, b) => a.sub(b));
     }
 
     /** Multiply `lhs` by `rhs` and return the resulting value. */
     static mul(lhs: Int, rhs: Int, overflow?: OverflowBehavior): Int {
-        return Int.operator(lhs, rhs, overflow, (a, b) => a.mul(b))
+        return Int.operator(lhs, rhs, overflow, (a, b) => a.mul(b));
     }
 
     /**
@@ -72,10 +72,11 @@ export class Int implements ABISerializableObject {
     static div(lhs: Int, rhs: Int, overflow?: OverflowBehavior): Int {
         return Int.operator(lhs, rhs, overflow, (a, b) => {
             if (b.isZero()) {
-                throw new Error('Division by zero')
+                throw new Error('Division by zero');
             }
-            return a.div(b)
-        })
+
+            return a.div(b);
+        });
     }
 
     /**
@@ -85,10 +86,11 @@ export class Int implements ABISerializableObject {
     static divRound(lhs: Int, rhs: Int, overflow?: OverflowBehavior): Int {
         return Int.operator(lhs, rhs, overflow, (a, b) => {
             if (b.isZero()) {
-                throw new Error('Division by zero')
+                throw new Error('Division by zero');
             }
-            return a.divRound(b)
-        })
+
+            return a.divRound(b);
+        });
     }
 
     /**
@@ -98,32 +100,33 @@ export class Int implements ABISerializableObject {
     static divCeil(lhs: Int, rhs: Int, overflow?: OverflowBehavior): Int {
         return Int.operator(lhs, rhs, overflow, (a, b) => {
             if (b.isZero()) {
-                throw new Error('Division by zero')
+                throw new Error('Division by zero');
             }
-            const dm = (a as any).divmod(b)
-            if (dm.mod.isZero()) return dm.div
-            return dm.div.negative !== 0 ? dm.div.isubn(1) : dm.div.iaddn(1)
-        })
+
+            const dm = (a as any).divmod(b);
+            if (dm.mod.isZero()) return dm.div;
+            return dm.div.negative !== 0 ? dm.div.isubn(1) : dm.div.iaddn(1);
+        });
     }
 
     /** Compare `lhs` to `rhs` and return true if `lhs` is greater than `rhs`. */
     static gt(lhs: Int, rhs: Int) {
-        return lhs.value.gt(rhs.value)
+        return lhs.value.gt(rhs.value);
     }
 
     /** Compare `lhs` to `rhs` and return true if `lhs` is less than `rhs`. */
     static lt(lhs: Int, rhs: Int) {
-        return lhs.value.lt(rhs.value)
+        return lhs.value.lt(rhs.value);
     }
 
     /** Compare `lhs` to `rhs` and return true if `lhs` is greater than or equal to `rhs`. */
     static gte(lhs: Int, rhs: Int) {
-        return lhs.value.gte(rhs.value)
+        return lhs.value.gte(rhs.value);
     }
 
     /** Compare `lhs` to `rhs` and return true if `lhs` is less than or equal to `rhs`. */
     static lte(lhs: Int, rhs: Int) {
-        return lhs.value.lte(rhs.value)
+        return lhs.value.lte(rhs.value);
     }
 
     /**
@@ -136,10 +139,10 @@ export class Int implements ABISerializableObject {
         overflow: OverflowBehavior = 'truncate',
         fn: (lhs: BN, rhs: BN) => BN
     ) {
-        const {a, b} = convert(lhs, rhs)
-        const type = a.constructor as typeof Int
-        const result = fn(a.value, b.value)
-        return type.from(result, overflow)
+        const {a, b} = convert(lhs, rhs);
+        const type = a.constructor as typeof Int;
+        const result = fn(a.value, b.value);
+        return type.from(result, overflow);
     }
 
     /**
@@ -152,102 +155,114 @@ export class Int implements ABISerializableObject {
         this: T,
         value: IntType | Uint8Array,
         overflow?: OverflowBehavior
-    ): InstanceType<T>
-    static from(value: any, overflow?: OverflowBehavior): unknown
+    ): InstanceType<T>;
+    static from(value: any, overflow?: OverflowBehavior): unknown;
     static from(value: IntType | Uint8Array, overflow?: OverflowBehavior): any {
         if (isInstanceOf(value, this)) {
-            return value
+            return value;
         }
-        let fromType: IntDescriptor = this
-        let bn: BN
+
+        let fromType: IntDescriptor = this;
+        let bn: BN;
+
         if (isInstanceOf(value, Int)) {
-            fromType = value.constructor as typeof Int
-            bn = value.value.clone()
+            fromType = value.constructor as typeof Int;
+            bn = value.value.clone();
         } else if (value instanceof Uint8Array) {
-            bn = new BN(value, undefined, 'le')
+            bn = new BN(value, undefined, 'le');
+
             if (fromType.isSigned) {
-                bn = bn.fromTwos(fromType.byteWidth * 8)
+                bn = bn.fromTwos(fromType.byteWidth * 8);
             }
         } else {
             if (
                 (typeof value === 'string' && !/[0-9]+/.test(value)) ||
                 (typeof value === 'number' && !Number.isFinite(value))
             ) {
-                throw new Error('Invalid number')
+                throw new Error('Invalid number');
             }
-            bn = BN.isBN(value) ? value.clone() : new BN(value, 10)
+
+            bn = BN.isBN(value) ? value.clone() : new BN(value, 10);
+
             if (bn.isNeg() && !fromType.isSigned) {
-                fromType = {byteWidth: fromType.byteWidth, isSigned: true}
+                fromType = {byteWidth: fromType.byteWidth, isSigned: true};
             }
         }
+
         switch (overflow) {
             case 'clamp':
-                bn = clamp(bn, this.min, this.max)
-                break
+                bn = clamp(bn, this.min, this.max);
+                break;
             case 'truncate':
-                bn = truncate(bn, fromType, this)
-                break
+                bn = truncate(bn, fromType, this);
+                break;
         }
-        return new this(bn)
+
+        return new this(bn);
     }
 
-    static fromABI<T extends typeof Int>(this: T, decoder: ABIDecoder): InstanceType<T>
-    static fromABI(decoder: ABIDecoder): unknown
+    static fromABI<T extends typeof Int>(this: T, decoder: ABIDecoder): InstanceType<T>;
+    static fromABI(decoder: ABIDecoder): unknown;
     static fromABI(decoder: ABIDecoder) {
-        return this.from(decoder.readArray(this.byteWidth))
+        return this.from(decoder.readArray(this.byteWidth));
     }
 
     static abiDefault() {
-        return this.from(0)
+        return this.from(0);
     }
 
-    static random<T extends typeof Int>(this: T): InstanceType<T>
-    static random(): unknown
+    static random<T extends typeof Int>(this: T): InstanceType<T>;
+    static random(): unknown;
     static random() {
-        return this.from(secureRandom(this.byteWidth))
+        return this.from(secureRandom(this.byteWidth));
     }
 
     /**
      * The underlying BN.js instance – don't modify this
      * directly – take a copy first using `.clone()`.
      */
-    value: BN
+    value: BN;
 
     /**
      * Create a new instance, don't use this directly. Use the `.from` factory method instead.
      * @throws If the value over- or under-flows the integer type.
      */
     constructor(value: BN) {
-        const self = this.constructor as typeof Int
+        const self = this.constructor as typeof Int;
+
         if (self.isSigned === undefined || self.byteWidth === undefined) {
-            throw new Error('Cannot instantiate abstract class Int')
+            throw new Error('Cannot instantiate abstract class Int');
         }
+
         if (value.gt(self.max)) {
-            throw new Error(`Number ${value} overflows ${self.abiName}`)
+            throw new Error(`Number ${value} overflows ${self.abiName}`);
         }
+
         if (value.lt(self.min)) {
-            throw new Error(`Number ${value} underflows ${self.abiName}`)
+            throw new Error(`Number ${value} underflows ${self.abiName}`);
         }
-        this.value = value
+
+        this.value = value;
     }
 
     /**
      * Cast this integer to other type.
      * @param overflow How to handle overflow, default is to preserve bit-pattern (C++11 behavior).
      */
-    cast<T extends typeof Int>(type: T, overflow?: OverflowBehavior): InstanceType<T>
+    cast<T extends typeof Int>(type: T, overflow?: OverflowBehavior): InstanceType<T>;
     cast(type: typeof Int, overflow: OverflowBehavior = 'truncate'): InstanceType<typeof Int> {
         if (this.constructor === type) {
-            return this
+            return this;
         }
-        return type.from(this, overflow)
+
+        return type.from(this, overflow);
     }
 
     /** Number as bytes in little endian (matches memory layout in C++ contract). */
     get byteArray(): Uint8Array {
-        const self = this.constructor as typeof Int
-        const value = self.isSigned ? this.value.toTwos(self.byteWidth * 8) : this.value
-        return value.toArrayLike(Uint8Array as any, 'le', self.byteWidth)
+        const self = this.constructor as typeof Int;
+        const value = self.isSigned ? this.value.toTwos(self.byteWidth * 8) : this.value;
+        return value.toArrayLike(Uint8Array as any, 'le', self.byteWidth);
     }
 
     /**
@@ -255,48 +270,51 @@ export class Int implements ABISerializableObject {
      * of the exact same type. I.e. Int64.from(1).equals(UInt64.from(1)) will return false.
      */
     equals(other: IntType | Uint8Array, strict = false) {
-        const self = this.constructor as typeof Int
+        const self = this.constructor as typeof Int;
+
         if (strict === true && isInstanceOf(other, Int)) {
-            const otherType = other.constructor as typeof Int
+            const otherType = other.constructor as typeof Int;
+
             if (self.byteWidth !== otherType.byteWidth || self.isSigned !== otherType.isSigned) {
-                return false
+                return false;
             }
         }
+
         try {
-            return this.value.eq(self.from(other).value)
+            return this.value.eq(self.from(other).value);
         } catch {
-            return false
+            return false;
         }
     }
 
     /** Mutating add. */
     add(num: IntType) {
-        this.value = this.operator(num, Int.add).value
+        this.value = this.operator(num, Int.add).value;
     }
 
     /** Non-mutating add. */
     adding(num: IntType) {
-        return this.operator(num, Int.add)
+        return this.operator(num, Int.add);
     }
 
     /** Mutating subtract. */
     subtract(num: IntType) {
-        this.value = this.operator(num, Int.sub).value
+        this.value = this.operator(num, Int.sub).value;
     }
 
     /** Non-mutating subtract. */
     subtracting(num: IntType) {
-        return this.operator(num, Int.sub)
+        return this.operator(num, Int.sub);
     }
 
     /** Mutating multiply. */
     multiply(by: IntType) {
-        this.value = this.operator(by, Int.mul).value
+        this.value = this.operator(by, Int.mul).value;
     }
 
     /** Non-mutating multiply. */
     multiplying(by: IntType) {
-        return this.operator(by, Int.mul)
+        return this.operator(by, Int.mul);
     }
 
     /**
@@ -305,7 +323,7 @@ export class Int implements ABISerializableObject {
      * @throws When dividing by zero.
      */
     divide(by: IntType, behavior?: DivisionBehavior) {
-        this.value = this.dividing(by, behavior).value
+        this.value = this.dividing(by, behavior).value;
     }
 
     /**
@@ -314,36 +332,38 @@ export class Int implements ABISerializableObject {
      * @throws When dividing by zero.
      */
     dividing(by: IntType, behavior?: DivisionBehavior) {
-        let op = Int.div
+        let op = Int.div;
+
         switch (behavior) {
             case 'ceil':
-                op = Int.divCeil
-                break
+                op = Int.divCeil;
+                break;
             case 'round':
-                op = Int.divRound
-                break
+                op = Int.divRound;
+                break;
         }
-        return this.operator(by, op)
+
+        return this.operator(by, op);
     }
 
     /** Greater than comparision operator */
     gt(other: Int) {
-        return Int.gt(this, other)
+        return Int.gt(this, other);
     }
 
     /** Less than comparision operator */
     lt(other: Int) {
-        return Int.lt(this, other)
+        return Int.lt(this, other);
     }
 
     /** Greater than or equal comparision operator */
     gte(other: Int) {
-        return Int.gte(this, other)
+        return Int.gte(this, other);
     }
 
     /** Less than or equal comparision operator */
     lte(other: Int) {
-        return Int.lte(this, other)
+        return Int.lte(this, other);
     }
 
     /**
@@ -351,13 +371,15 @@ export class Int implements ABISerializableObject {
      * @internal
      */
     private operator(other: IntType, fn: (lhs: Int, rhs: Int) => Int): this {
-        let rhs: Int
+        let rhs: Int;
+
         if (isInstanceOf(other, Int)) {
-            rhs = other
+            rhs = other;
         } else {
-            rhs = Int64.from(other, 'truncate')
+            rhs = Int64.from(other, 'truncate');
         }
-        return fn(this, rhs).cast(this.constructor as typeof Int) as this
+
+        return fn(this, rhs).cast(this.constructor as typeof Int) as this;
     }
 
     /**
@@ -365,131 +387,131 @@ export class Int implements ABISerializableObject {
      * @throws If the number cannot be represented by 53-bits.
      **/
     toNumber() {
-        return this.value.toNumber()
+        return this.value.toNumber();
     }
 
     toString() {
-        return this.value.toString()
+        return this.value.toString();
     }
 
     [Symbol.toPrimitive](type: string) {
         if (type === 'number') {
-            return this.toNumber()
+            return this.toNumber();
         } else {
-            return this.toString()
+            return this.toString();
         }
     }
 
     toABI(encoder: ABIEncoder) {
-        encoder.writeArray(this.byteArray)
+        encoder.writeArray(this.byteArray);
     }
 
     toJSON() {
         // match FCs behavior and return strings for anything above 32-bit
         if (this.value.bitLength() > 32) {
-            return this.value.toString()
+            return this.value.toString();
         } else {
-            return this.value.toNumber()
+            return this.value.toNumber();
         }
     }
 }
 
-export type Int8Type = Int8 | IntType
+export type Int8Type = Int8 | IntType;
 export class Int8 extends Int {
-    static abiName = 'int8'
-    static byteWidth = 1
-    static isSigned = true
+    static abiName = 'int8';
+    static byteWidth = 1;
+    static isSigned = true;
 }
 
-export type Int16Type = Int16 | IntType
+export type Int16Type = Int16 | IntType;
 export class Int16 extends Int {
-    static abiName = 'int16'
-    static byteWidth = 2
-    static isSigned = true
+    static abiName = 'int16';
+    static byteWidth = 2;
+    static isSigned = true;
 }
 
-export type Int32Type = Int32 | IntType
+export type Int32Type = Int32 | IntType;
 export class Int32 extends Int {
-    static abiName = 'int32'
-    static byteWidth = 4
-    static isSigned = true
+    static abiName = 'int32';
+    static byteWidth = 4;
+    static isSigned = true;
 }
 
-export type Int64Type = Int64 | IntType
+export type Int64Type = Int64 | IntType;
 export class Int64 extends Int {
-    static abiName = 'int64'
-    static byteWidth = 8
-    static isSigned = true
+    static abiName = 'int64';
+    static byteWidth = 8;
+    static isSigned = true;
 }
 
-export type Int128Type = Int128 | IntType
+export type Int128Type = Int128 | IntType;
 export class Int128 extends Int {
-    static abiName = 'int128'
-    static byteWidth = 16
-    static isSigned = true
+    static abiName = 'int128';
+    static byteWidth = 16;
+    static isSigned = true;
 }
 
-export type UInt8Type = UInt8 | IntType
+export type UInt8Type = UInt8 | IntType;
 export class UInt8 extends Int {
-    static abiName = 'uint8'
-    static byteWidth = 1
-    static isSigned = false
+    static abiName = 'uint8';
+    static byteWidth = 1;
+    static isSigned = false;
 }
 
-export type UInt16Type = UInt16 | IntType
+export type UInt16Type = UInt16 | IntType;
 export class UInt16 extends Int {
-    static abiName = 'uint16'
-    static byteWidth = 2
-    static isSigned = false
+    static abiName = 'uint16';
+    static byteWidth = 2;
+    static isSigned = false;
 }
 
-export type UInt32Type = UInt32 | IntType
+export type UInt32Type = UInt32 | IntType;
 export class UInt32 extends Int {
-    static abiName = 'uint32'
-    static byteWidth = 4
-    static isSigned = false
+    static abiName = 'uint32';
+    static byteWidth = 4;
+    static isSigned = false;
 }
 
-export type UInt64Type = UInt64 | IntType
+export type UInt64Type = UInt64 | IntType;
 export class UInt64 extends Int {
-    static abiName = 'uint64'
-    static byteWidth = 8
-    static isSigned = false
+    static abiName = 'uint64';
+    static byteWidth = 8;
+    static isSigned = false;
 }
 
-export type UInt128Type = UInt128 | IntType
+export type UInt128Type = UInt128 | IntType;
 export class UInt128 extends Int {
-    static abiName = 'uint128'
-    static byteWidth = 16
-    static isSigned = false
+    static abiName = 'uint128';
+    static byteWidth = 16;
+    static isSigned = false;
 }
 
-export type VarIntType = VarInt | IntType
+export type VarIntType = VarInt | IntType;
 export class VarInt extends Int {
-    static abiName = 'varint32'
-    static byteWidth = 32
-    static isSigned = true
+    static abiName = 'varint32';
+    static byteWidth = 32;
+    static isSigned = true;
 
     static fromABI(decoder: ABIDecoder) {
-        return new this(new BN(decoder.readVarint32()))
+        return new this(new BN(decoder.readVarint32()));
     }
 
     toABI(encoder: ABIEncoder) {
-        encoder.writeVarint32(Number(this))
+        encoder.writeVarint32(Number(this));
     }
 }
-export type VarUIntType = VarUInt | IntType
+export type VarUIntType = VarUInt | IntType;
 export class VarUInt extends Int {
-    static abiName = 'varuint32'
-    static byteWidth = 32
-    static isSigned = false
+    static abiName = 'varuint32';
+    static byteWidth = 32;
+    static isSigned = false;
 
     static fromABI(decoder: ABIDecoder) {
-        return new this(new BN(decoder.readVaruint32()))
+        return new this(new BN(decoder.readVaruint32()));
     }
 
     toABI(encoder: ABIEncoder) {
-        encoder.writeVaruint32(Number(this))
+        encoder.writeVaruint32(Number(this));
     }
 }
 
@@ -505,11 +527,11 @@ export type AnyInt =
     | UInt64Type
     | UInt128Type
     | VarIntType
-    | VarUIntType
+    | VarUIntType;
 
 /** Clamp number between min and max. */
 function clamp(num: BN, min: BN, max: BN) {
-    return BN.min(BN.max(num, min), max)
+    return BN.min(BN.max(num, min), max);
 }
 
 /**
@@ -517,24 +539,24 @@ function clamp(num: BN, min: BN, max: BN) {
  * extending or truncating the value’s representation as necessary.
  */
 function truncate(value: BN, from: IntDescriptor, to: IntDescriptor): BN {
-    const fill = value.isNeg() ? 255 : 0
-    const fromValue = from.isSigned ? value.toTwos(from.byteWidth * 8) : value
-    const fromBytes = fromValue.toArrayLike(Uint8Array as any, 'le') as Uint8Array
-    const toBytes = new Uint8Array(to.byteWidth)
-    toBytes.fill(fill)
-    toBytes.set(fromBytes.slice(0, to.byteWidth))
-    const toValue = new BN(toBytes, undefined, 'le')
-    return to.isSigned ? toValue.fromTwos(to.byteWidth * 8) : toValue
+    const fill = value.isNeg() ? 255 : 0;
+    const fromValue = from.isSigned ? value.toTwos(from.byteWidth * 8) : value;
+    const fromBytes = fromValue.toArrayLike(Uint8Array as any, 'le') as Uint8Array;
+    const toBytes = new Uint8Array(to.byteWidth);
+    toBytes.fill(fill);
+    toBytes.set(fromBytes.slice(0, to.byteWidth));
+    const toValue = new BN(toBytes, undefined, 'le');
+    return to.isSigned ? toValue.fromTwos(to.byteWidth * 8) : toValue;
 }
 
 /** C++11 implicit integer conversions. */
 function convert(a: Int, b: Int) {
     // The integral promotions (4.5) shall be performed on both operands.
-    a = promote(a)
-    b = promote(b)
+    a = promote(a);
+    b = promote(b);
 
-    const aType = a.constructor as typeof Int
-    const bType = b.constructor as typeof Int
+    const aType = a.constructor as typeof Int;
+    const bType = b.constructor as typeof Int;
 
     // If both operands have the same type, no further conversion is needed
     if (aType !== bType) {
@@ -543,18 +565,18 @@ function convert(a: Int, b: Int) {
         // of the operand with greater rank.
         if (aType.isSigned === bType.isSigned) {
             if (aType.byteWidth > bType.byteWidth) {
-                b = b.cast(aType)
+                b = b.cast(aType);
             } else if (bType.byteWidth > aType.byteWidth) {
-                a = a.cast(bType)
+                a = a.cast(bType);
             }
         } else {
             // Otherwise, if the operand that has unsigned integer type has rank greater than or equal
             // to the rank of the type of the other operand, the operand with signed integer type
             // shall be converted to the type of the operand with unsigned integer type.
             if (aType.isSigned === false && aType.byteWidth >= bType.byteWidth) {
-                b = b.cast(aType)
+                b = b.cast(aType);
             } else if (bType.isSigned === false && bType.byteWidth >= aType.byteWidth) {
-                a = a.cast(bType)
+                a = a.cast(bType);
             } else {
                 // Otherwise, if the type of the operand with signed integer type can represent all of the
                 // values of the type of the operand with unsigned integer type, the operand with unsigned
@@ -564,13 +586,13 @@ function convert(a: Int, b: Int) {
                     aType.max.gte(bType.max) &&
                     aType.min.lte(bType.min)
                 ) {
-                    b = b.cast(aType)
+                    b = b.cast(aType);
                 } else if (
                     bType.isSigned === true &&
                     bType.max.gte(aType.max) &&
                     bType.min.lte(aType.min)
                 ) {
-                    a = a.cast(bType)
+                    a = a.cast(bType);
                 } else {
                     // Otherwise, both operands shall be converted to the unsigned integer type
                     // corresponding to the type of the operand with signed integer type.
@@ -600,7 +622,8 @@ function convert(a: Int, b: Int) {
             }
         }
     }
-    return {a, b}
+
+    return {a, b};
 }
 
 /** C++11 integral promotion. */
@@ -609,10 +632,12 @@ function promote(n: Int) {
     // unsigned short int can be converted to an rvalue of type int if int
     // can represent all the values of the source type; otherwise, the source
     // rvalue can be converted to an rvalue of type unsigned int.
-    let rv = n
-    const type = n.constructor as typeof Int
+    let rv = n;
+    const type = n.constructor as typeof Int;
+
     if (type.byteWidth < 4) {
-        rv = n.cast(Int32)
+        rv = n.cast(Int32);
     }
-    return rv
+
+    return rv;
 }

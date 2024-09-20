@@ -1,4 +1,4 @@
-import {APIClient} from '../client'
+import {APIClient} from '../client';
 
 import {
     Checksum256,
@@ -11,14 +11,14 @@ import {
     PublicKeyType,
     UInt32,
     UInt32Type,
-} from '../../chain'
+} from '../../chain';
 
 import {
     GetActionsResponse,
     GetControlledAccountsResponse,
     GetKeyAccountsResponse,
     GetTransactionResponse,
-} from './types'
+} from './types';
 
 export class HistoryAPI {
     constructor(private client: APIClient) {}
@@ -32,7 +32,7 @@ export class HistoryAPI {
                 offset: Int32.from(offset),
             },
             responseType: GetActionsResponse,
-        })
+        });
     }
 
     async get_transaction(
@@ -47,7 +47,7 @@ export class HistoryAPI {
                 traces: options.excludeTraces === true ? false : undefined,
             },
             responseType: GetTransactionResponse,
-        })
+        });
     }
 
     async get_key_accounts(publicKey: PublicKeyType) {
@@ -55,7 +55,7 @@ export class HistoryAPI {
             path: '/v1/history/get_key_accounts',
             params: {public_key: PublicKey.from(publicKey)},
             responseType: GetKeyAccountsResponse,
-        })
+        });
     }
 
     async get_controlled_accounts(controllingAccount: NameType) {
@@ -63,6 +63,6 @@ export class HistoryAPI {
             path: '/v1/history/get_controlled_accounts',
             params: {controlling_account: Name.from(controllingAccount)},
             responseType: GetControlledAccountsResponse,
-        })
+        });
     }
 }

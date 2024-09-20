@@ -1,31 +1,32 @@
-# @wharfkit/antelope
+# @wireio/core
 
 JavaScript library for working with Antelope powered blockchains (formerly EOSIO, still compatible with EOSIO).
 
-Avaiable on npm: https://www.npmjs.com/package/@wharfkit/antelope
+Avaiable on npm: <https://www.npmjs.com/package/@wireio/core>
 
 ## Install
 
-```
-npm install @wharfkit/antelope
+```sh
+npm install @wireio/core
 ```
 
 ## API Documentation
 
-https://wharfkit.github.io/antelope/
+- [API Documentation](https://Wire-Network.github.io/sdk-core/)
+- Code Coverage = Coming soon
 
 ## Documentation
 
 Documentation beyond the automatically generated API documentation above is currently incomplete. Until full documentation is complete, the tests themselves provide good reference material on how to do nearly everything.
 
-https://github.com/wharfkit/antelope/tree/master/test
+<https://github.com/Wire-Network/sdk-core/tree/master/test>
 
 More:
 
--   Using APIs: https://github.com/wharfkit/antelope/blob/master/test/api.ts
--   Serialization: https://github.com/wharfkit/antelope/blob/master/test/serializer.ts
--   Crypto Operations: https://github.com/wharfkit/antelope/blob/master/test/crypto.ts
--   Primitive Data Types: https://github.com/wharfkit/antelope/blob/master/test/chain.ts
+- Using APIs: <https://github.com/Wire-Network/sdk-core/blob/master/test/api.ts>
+- Serialization: <https://github.com/Wire-Network/sdk-core/blob/master/test/serializer.ts>
+- Crypto Operations: <https://github.com/Wire-Network/sdk-core/blob/master/test/crypto.ts>
+- Primitive Data Types: <https://github.com/Wire-Network/sdk-core/blob/master/test/chain.ts>
 
 ## Reporting Issues
 
@@ -33,7 +34,7 @@ If you think you've found an issue with this codebase, please submit a pull requ
 
 To do this, fork this repository and create your own branch. In this new branch, use the test scaffolding at the path below to write code that either fails to execute, throws an error, or doesn't return the anticipated response.
 
-```
+```sh
 ./test/bug-report.ts
 ```
 
@@ -55,27 +56,23 @@ Once your test is failing and successfully shows the issue occurring, please sub
 
 ## Running Tests
 
-### Run the unit test suite:
+### Run the unit test suite
 
-```
+```sh
 make test
 ```
 
-### Run the unit test suite with coverage:
+### Run the unit test suite with coverage
 
-```
+```sh
 make coverage
 ```
 
-The report for the current version can also be found at: https://wharfkit.github.io/antelope/coverage/
+### Run the test suite in a browser
 
-### Run the test suite in a browser:
-
-```
+```sh
 make browser-test
 ```
-
-The browser test suite for the current version of the library is available at: https://wharfkit.github.io/antelope/tests.html
 
 ## Debugging
 
