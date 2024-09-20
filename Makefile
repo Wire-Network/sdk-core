@@ -57,7 +57,7 @@ node_modules:
 publish: | distclean node_modules
 	@if [ -z "$${NPM_TOKEN}" ]; then echo "NPM token is not set."; exit 1; fi
 	@git diff-index --quiet HEAD || (echo "Uncommitted changes, please commit first" && exit 1)
-	@git fetch origin && git diff origin/npm-pub --quiet || (echo "Changes not pushed to origin, please push first" && exit 1)
+	@git fetch origin && git diff origin/master --quiet || (echo "Changes not pushed to origin, please push first" && exit 1)
 	@yarn config set version-tag-prefix "" && yarn config set version-git-message "Version %s"
 	@NPM_TOKEN=$${NPM_TOKEN} yarn publish --access restricted --non-interactive 
 	@git push && git push --tags
@@ -69,19 +69,19 @@ docs: build/docs
 
 build/docs: $(SRC_FILES) node_modules
 	@${BIN}/typedoc --out build/docs src/index.ts
-	@rsync -av --delete build/docs/ docs/
+	# @rsync -av --delete build/docs/ docs/
 	
 .PHONY: deploy-site
-deploy-site: | clean docs-build test/browser.html test-coverage
+deploy-site: | clean build/docs test/browser.html test-coverage
 	@mkdir -p site
-	@cp -r docs-build/* site/
+	@cp -r build/docs/* site/
 	@cp -r test/browser.html site/tests.html
 	@cp -r coverage/ site/coverage/
-	# @${BIN}/gh-pages -d site
+	@${BIN}/gh-pages -d site
 
 .PHONY: clean
 clean:
-	rm -rf lib/ coverage/ docs-build/ site/ test/browser.html
+	rm -rf lib/ coverage/ build/docs/ site/ test/browser.html
 
 .PHONY: distclean
 distclean: clean
