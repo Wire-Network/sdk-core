@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">99.14% </span>
+                <span class="strong">99.19% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>346/349</span>
+                <span class='fraction'>369/372</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">99% </span>
+                <span class="strong">99.07% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>299/302</span>
+                <span class='fraction'>320/323</span>
             </div>
         
             
@@ -831,7 +831,38 @@
 <a name='L766'></a><a href='#L766'>766</a>
 <a name='L767'></a><a href='#L767'>767</a>
 <a name='L768'></a><a href='#L768'>768</a>
-<a name='L769'></a><a href='#L769'>769</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L769'></a><a href='#L769'>769</a>
+<a name='L770'></a><a href='#L770'>770</a>
+<a name='L771'></a><a href='#L771'>771</a>
+<a name='L772'></a><a href='#L772'>772</a>
+<a name='L773'></a><a href='#L773'>773</a>
+<a name='L774'></a><a href='#L774'>774</a>
+<a name='L775'></a><a href='#L775'>775</a>
+<a name='L776'></a><a href='#L776'>776</a>
+<a name='L777'></a><a href='#L777'>777</a>
+<a name='L778'></a><a href='#L778'>778</a>
+<a name='L779'></a><a href='#L779'>779</a>
+<a name='L780'></a><a href='#L780'>780</a>
+<a name='L781'></a><a href='#L781'>781</a>
+<a name='L782'></a><a href='#L782'>782</a>
+<a name='L783'></a><a href='#L783'>783</a>
+<a name='L784'></a><a href='#L784'>784</a>
+<a name='L785'></a><a href='#L785'>785</a>
+<a name='L786'></a><a href='#L786'>786</a>
+<a name='L787'></a><a href='#L787'>787</a>
+<a name='L788'></a><a href='#L788'>788</a>
+<a name='L789'></a><a href='#L789'>789</a>
+<a name='L790'></a><a href='#L790'>790</a>
+<a name='L791'></a><a href='#L791'>791</a>
+<a name='L792'></a><a href='#L792'>792</a>
+<a name='L793'></a><a href='#L793'>793</a>
+<a name='L794'></a><a href='#L794'>794</a>
+<a name='L795'></a><a href='#L795'>795</a>
+<a name='L796'></a><a href='#L796'>796</a>
+<a name='L797'></a><a href='#L797'>797</a>
+<a name='L798'></a><a href='#L798'>798</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1453,6 +1484,33 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
@@ -1602,6 +1660,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import pako from 'pako';
 import {
     ABI,
+    Action,
+    ActionFields,
     AnyAction,
     Asset,
     Authority,
@@ -2219,9 +2279,36 @@ export class GetActionsResponse extends Struct {
     @Struct.field('boolean?') time_limit_exceeded_error?: boolean;
 }
 &nbsp;
-@Struct.type('transaction_trace')
-export class TransactionTrace extends Struct {}
+@Struct.type('transaction_auth_sequence')
+export class TransactionAuthSequence extends Struct {
+    @Struct.field('string') declare account: string
+    @Struct.field('string') declare sequence: string
+}
 &nbsp;
+@Struct.type('transaction_trace_receipt')
+export class TransactionTraceReceipt extends Struct {
+    @Struct.field(Checksum256) declare act_digest: Checksum256
+    @Struct.field(TransactionAuthSequence) declare auth_sequence: TransactionAuthSequence[]
+    @Struct.field('string') declare global_sequence: string
+    @Struct.field('name') declare receiver: Name;
+    @Struct.field('string') declare recv_sequence: string
+}
+&nbsp;
+@Struct.type('transaction_trace')
+export class TransactionTrace extends Struct {
+    @Struct.field('any?') declare account_ram_deltas: any[]
+    @Struct.field(Action) declare act: Action
+    @Struct.field('number') declare block_num: number
+    @Struct.field(BlockTimestamp) declare block_time: BlockTimestamp
+    @Struct.field('string') declare console: string
+    @Struct.field('boolean') declare context_free: boolean
+    @Struct.field('number') declare elapsed: number
+    @Struct.field('any?') declare except: any
+    @Struct.field(TransactionTrace) declare inline_traces: TransactionTrace[]
+    @Struct.field(Checksum256) declare producer_block_id: Checksum256
+    @Struct.field(TransactionTraceReceipt) declare receipt: TransactionTraceReceipt
+    @Struct.field(Checksum256) declare trx_id: Checksum256
+}
 @Struct.type('trx')
 export class Trx extends Struct {
     @Struct.field('any') declare actions: AnyAction[];
@@ -2374,7 +2461,7 @@ export interface GetAccountsByAuthorizersParams {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2024-09-20T18:23:24.565Z
+                at 2024-10-03T16:41:34.702Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>
