@@ -1,6 +1,6 @@
 # @wireio/core
 
-JavaScript library for working with Antelope powered blockchains (formerly EOSIO, still compatible with EOSIO).
+JavaScript library for working with Wire powered blockchains (formerly EOSIO, still compatible with EOSIO).
 
 Avaiable on npm: <https://www.npmjs.com/package/@wireio/core>
 
@@ -13,13 +13,10 @@ npm install @wireio/core
 ## API Documentation
 
 - [API Documentation](https://Wire-Network.github.io/sdk-core/)
-- Code Coverage = Coming soon
 
 ## Documentation
 
-Documentation beyond the automatically generated API documentation above is currently incomplete. Until full documentation is complete, the tests themselves provide good reference material on how to do nearly everything.
-
-<https://github.com/Wire-Network/sdk-core/tree/master/test>
+[Tests](https://github.com/Wire-Network/sdk-core/tree/master/test) provide good reference material on how to do nearly everything.
 
 More:
 
@@ -68,17 +65,11 @@ make test
 make coverage
 ```
 
-### Run the test suite in a browser
-
-```sh
-make browser-test
-```
-
 ## Debugging
 
 Instructions and notes on debugging typescript in your IDE. Explains how to match the Mocha test configuration found in the Makefile.
 
-[Notes on setting up IDE Debuggers](docs/IDE_Debug.md)
+[Notes on setting up IDE Debuggers](ide-setup/IDE_Debug.md)
 
 ## License
 
