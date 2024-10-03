@@ -1,6 +1,8 @@
 import pako from 'pako';
 import {
     ABI,
+    Action,
+    ActionFields,
     AnyAction,
     Asset,
     Authority,
@@ -618,9 +620,36 @@ export class GetActionsResponse extends Struct {
     @Struct.field('boolean?') time_limit_exceeded_error?: boolean;
 }
 
-@Struct.type('transaction_trace')
-export class TransactionTrace extends Struct {}
+@Struct.type('transaction_auth_sequence')
+export class TransactionAuthSequence extends Struct {
+    @Struct.field('string') declare account: string
+    @Struct.field('string') declare sequence: string
+}
 
+@Struct.type('transaction_trace_receipt')
+export class TransactionTraceReceipt extends Struct {
+    @Struct.field(Checksum256) declare act_digest: Checksum256
+    @Struct.field(TransactionAuthSequence) declare auth_sequence: TransactionAuthSequence[]
+    @Struct.field('string') declare global_sequence: string
+    @Struct.field('name') declare receiver: Name;
+    @Struct.field('string') declare recv_sequence: string
+}
+
+@Struct.type('transaction_trace')
+export class TransactionTrace extends Struct {
+    @Struct.field('any?') declare account_ram_deltas: any[]
+    @Struct.field(Action) declare act: Action
+    @Struct.field('number') declare block_num: number
+    @Struct.field(BlockTimestamp) declare block_time: BlockTimestamp
+    @Struct.field('string') declare console: string
+    @Struct.field('boolean') declare context_free: boolean
+    @Struct.field('number') declare elapsed: number
+    @Struct.field('any?') declare except: any
+    @Struct.field(TransactionTrace) declare inline_traces: TransactionTrace[]
+    @Struct.field(Checksum256) declare producer_block_id: Checksum256
+    @Struct.field(TransactionTraceReceipt) declare receipt: TransactionTraceReceipt
+    @Struct.field(Checksum256) declare trx_id: Checksum256
+}
 @Struct.type('trx')
 export class Trx extends Struct {
     @Struct.field('any') declare actions: AnyAction[];
