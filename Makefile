@@ -61,7 +61,8 @@ publish: | distclean node_modules
 	@yarn config set version-tag-prefix "" && yarn config set version-git-message "Version %s"
 	@NPM_TOKEN=$${NPM_TOKEN} yarn publish --access restricted --non-interactive 
 	@git push && git push --tags
-	@curl -X POST -H 'Content-type: application/json' --data '{"channel": "#npm-events","blocks":[{"type": "section","text": {"type": "mrkdwn","text": "*New Deployment!*"}},{"type": "section","fields": [{"type": "mrkdwn","text": "*Package Name:*\n$(PACKAGE_NAME)"},{"type": "mrkdwn","text": "*Version:*\n$(PACKAGE_VERSION)"}]},{"type": "divider"},{"type": "section","text": {"type": "mrkdwn","text": "Published on: $(PUBLISH_DATE)"}}]}' $(SLACK_WEBHOOK_URL)
+	@curl -X POST -H 'Content-type: application/json' --data '{ "channel": "#npm-notifications","username": "npm bot", "icon_url": "https://static-00.iconduck.com/assets.00/megaphone-emoji-512x390-7a60feky.png","text": "#### New Deployment!\n\n**Package Name:** $(PACKAGE_NAME) \n**Version:** $(PACKAGE_VERSION)   **Published on**: $(PUBLISH_DATE)" }' $(WEBHOOK_URL)
+
 
 .PHONY: docs
 docs: build/docs
