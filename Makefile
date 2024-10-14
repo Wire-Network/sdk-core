@@ -58,10 +58,11 @@ node_modules:
 .PHONY: publish
 publish: | distclean node_modules
 	@if [ -z "$${NPM_TOKEN}" ]; then echo "NPM token is not set."; exit 1; fi
+	@if [ -z "$${WEBHOOK_URL}" ]; then echo "WEBHOOK_URL is not set."; exit 1; fi
 	@git diff-index --quiet HEAD || (echo "Uncommitted changes, please commit first" && exit 1)
 	@git fetch origin && git diff origin/master --quiet || (echo "Changes not pushed to origin, please push first" && exit 1)
 	@yarn config set version-tag-prefix "" && yarn config set version-git-message "Version %s"
-	@NPM_TOKEN=$${NPM_TOKEN} yarn publish --access restricted --non-interactive 
+	@NPM_TOKEN=$${NPM_TOKEN} yarn publish --access public --non-interactive 
 	@git push && git push --tags
 	@curl -X POST -H 'Content-type: application/json' --data '{ "channel": "#npm-notifications","username": "npm bot", "icon_url": "https://static-00.iconduck.com/assets.00/megaphone-emoji-512x390-7a60feky.png","text": "#### New Deployment!\n\n**Package Name:** $(PACKAGE_NAME) \n**Version:** $(PACKAGE_VERSION)   **Published on**: $(PUBLISH_DATE)" }' $(WEBHOOK_URL)
 
@@ -71,7 +72,7 @@ ci-publish: | distclean node_modules
 	@echo "Publishing package..."
 	@if [ -z "$${NODE_AUTH_TOKEN}" ]; then echo "NPM token is not set."; exit 1; fi
 	@if [ -z "$${WEBHOOK_URL}" ]; then echo "WEBHOOK_URL is not set."; exit 1; fi
-	@npm publish --access restricted --non-interactive
+	@npm publish --access public --non-interactive
 	@curl -X POST -H 'Content-type: application/json' --data '{ "channel": "#npm-notifications","username": "npm bot", "icon_url": "https://static-00.iconduck.com/assets.00/megaphone-emoji-512x390-7a60feky.png","text": "#### New Deployment!\n\n**Package Name:** $(PACKAGE_NAME) \n**Version:** $(PACKAGE_VERSION)   **Published on**: $(PUBLISH_DATE)" }' $(WEBHOOK_URL)
 
 
