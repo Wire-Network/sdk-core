@@ -30,7 +30,9 @@
     "publish-package": "make publish",
     "deploy-site": "make deploy-site",
     "clean": "make clean",
-    "distclean": "make distclean"
+    "distclean": "make distclean",
+    "lint": "eslint 'src/**/*.{js,ts}'",
+    "lint:fix": "eslint 'src/**/*.{js,ts}' --fix"
   },
   "dependencies": {
     "bn.js": "^4.11.9",

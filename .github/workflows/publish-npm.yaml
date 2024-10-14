@@ -1,0 +1,53 @@
+name: Deploy to npm
+
+on:
+  push:
+    tags:
+      - 'v*'  # Only trigger when a version tag (e.g., v1.0.0) is pushed
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  
+
+      - name: Display Git Information
+        run: |
+          echo "GITHUB_REF: $GITHUB_REF"
+          echo "GITHUB_SHA: $GITHUB_SHA"
+          git log -1
+
+      - name: Get the tag name
+        id: get_tag
+        run: echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+
+      - name: Use the tag name
+        run: echo "The tag name is $TAG_NAME"
+        env:
+          TAG_NAME: ${{ env.TAG_NAME }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.18.0
+          registry-url: 'https://registry.npmjs.org'
+          scope: '@wireio'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: make lib
+
+      - name: Run make publish
+        run: make ci-publish
+        env:
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}  

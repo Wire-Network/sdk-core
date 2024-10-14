@@ -63,6 +63,16 @@ publish: | distclean node_modules
 	@git push && git push --tags
 	@curl -X POST -H 'Content-type: application/json' --data '{ "channel": "#npm-notifications","username": "npm bot", "icon_url": "https://static-00.iconduck.com/assets.00/megaphone-emoji-512x390-7a60feky.png","text": "#### New Deployment!\n\n**Package Name:** $(PACKAGE_NAME) \n**Version:** $(PACKAGE_VERSION)   **Published on**: $(PUBLISH_DATE)" }' $(WEBHOOK_URL)
 
+# used for GitHub Deploy Action
+.PHONY: ci-publish
+ci-publish: | distclean node_modules
+	@echo "Publishing package..."
+	@if [ -z "$${NODE_AUTH_TOKEN}" ]; then echo "NPM token is not set."; exit 1; fi
+	@if [ -z "$${WEBHOOK_URL}" ]; then echo "WEBHOOK_URL is not set."; exit 1; fi
+	@npm publish --access restricted --non-interactive
+	@curl -X POST -H 'Content-type: application/json' --data '{ "channel": "#npm-notifications","username": "npm bot", "icon_url": "https://static-00.iconduck.com/assets.00/megaphone-emoji-512x390-7a60feky.png","text": "#### New Deployment!\n\n**Package Name:** $(PACKAGE_NAME) \n**Version:** $(PACKAGE_VERSION)   **Published on**: $(PUBLISH_DATE)" }' $(WEBHOOK_URL)
+
+
 
 .PHONY: docs
 docs: build/docs
