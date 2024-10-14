@@ -1,5 +1,7 @@
-include .env
-export $(shell sed 's/=.*//' .env)
+SHELL := /bin/bash
+
+# include .env
+# export $(shell sed 's/=.*//' .env)
 
 PACKAGE_NAME := $(shell jq -r .name package.json)
 PACKAGE_VERSION := $(shell jq -r .version package.json)
