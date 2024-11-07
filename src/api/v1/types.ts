@@ -2,7 +2,6 @@ import pako from 'pako';
 import {
     ABI,
     Action,
-    ActionFields,
     AnyAction,
     Asset,
     Authority,

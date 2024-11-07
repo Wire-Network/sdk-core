@@ -55,14 +55,13 @@ node_modules:
 
 .PHONY: publish
 publish: | distclean node_modules
-	@if [ -z "$${NPM_TOKEN}" ]; then echo "NPM token is not set."; exit 1; fi
 	@git diff-index --quiet HEAD || (echo "Uncommitted changes, please commit first" && exit 1)
 	@git fetch origin && git diff origin/master --quiet || (echo "Changes not pushed to origin, please push first" && exit 1)
 	@yarn config set version-tag-prefix "" && yarn config set version-git-message "Version %s"
-	@NPM_TOKEN=$${NPM_TOKEN} yarn publish --access restricted --non-interactive 
+	@yarn publish --access restricted --non-interactive
 	@git push && git push --tags
 	@curl -X POST -H 'Content-type: application/json' --data '{"channel": "#npm-events","blocks":[{"type": "section","text": {"type": "mrkdwn","text": "*New Deployment!*"}},{"type": "section","fields": [{"type": "mrkdwn","text": "*Package Name:*\n$(PACKAGE_NAME)"},{"type": "mrkdwn","text": "*Version:*\n$(PACKAGE_VERSION)"}]},{"type": "divider"},{"type": "section","text": {"type": "mrkdwn","text": "Published on: $(PUBLISH_DATE)"}}]}' $(SLACK_WEBHOOK_URL)
-
+	
 .PHONY: docs
 docs: build/docs
 	@open build/docs/index.html
