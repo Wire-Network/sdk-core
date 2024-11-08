@@ -23,17 +23,14 @@ import {
 } from './types';
 
 export class HyperionAPI {
-    get provider(){
-        return this.provider;
-    }
-    private _provider?: FetchProvider;
+    private provider?: FetchProvider;
 
     constructor(api: APIClient) {
-        if (!api.hyperionProvider) throw new Error('HyperionAPI requires a provider');
-        this._provider = api.hyperionProvider;
+        this.provider = api.hyperionProvider;
     }
 
     async check_transaction(id: string): Promise<CheckTransactionResponse> {
+        if (!this.provider) throw new Error('HyperionAPI requires a provider');
         const response = await this.provider.call({
             path: '/v2/history/check_transaction',
             params: { id },
@@ -43,6 +40,7 @@ export class HyperionAPI {
     }
 
     async get_abi_snapshot(params: { contract: string; block?: number; fetch?: boolean }): Promise<GetAbiSnapshotResponse> {
+        if (!this.provider) throw new Error('HyperionAPI requires a provider');
         const response = await this.provider.call({
             path: '/v2/history/get_abi_snapshot',
             params,
@@ -66,6 +64,7 @@ export class HyperionAPI {
         noBinary?: boolean;
         checkLib?: boolean;
     }): Promise<GetActionsResponse> {
+        if (!this.provider) throw new Error('HyperionAPI requires a provider');
         const response = await this.provider.call({
             path: '/v2/history/get_actions',
             params,
@@ -75,6 +74,7 @@ export class HyperionAPI {
     }
 
     async get_created_accounts(account: string): Promise<GetCreatedAccountsResponse> {
+        if (!this.provider) throw new Error('HyperionAPI requires a provider');
         const response = await this.provider.call({
             path: '/v2/history/get_created_accounts',
             params: { account },
@@ -84,6 +84,7 @@ export class HyperionAPI {
     }
 
     async get_creator(account: string): Promise<GetCreatorResponse> {
+        if (!this.provider) throw new Error('HyperionAPI requires a provider');
         const response = await this.provider.call({
             path: '/v2/history/get_creator',
             params: { account },
@@ -101,6 +102,7 @@ export class HyperionAPI {
         before?: string;
         present?: number;
     }): Promise<GetDeltasResponse> {
+        if (!this.provider) throw new Error('HyperionAPI requires a provider');
         const response = await this.provider.call({
             path: '/v2/history/get_deltas',
             params,
@@ -120,6 +122,7 @@ export class HyperionAPI {
         after?: string;
         before?: string;
     }): Promise<GetTransactedAccountsResponse> {
+        if (!this.provider) throw new Error('HyperionAPI requires a provider');
         const response = await this.provider.call({
             path: '/v2/history/get_transacted_accounts',
             params,
@@ -129,6 +132,7 @@ export class HyperionAPI {
     }
 
     async get_transaction(id: string, block_hint?: number): Promise<GetTransactionResponse> {
+        if (!this.provider) throw new Error('HyperionAPI requires a provider');
         const response = await this.provider.call({
             path: '/v2/history/get_transaction',
             params: { id, block_hint },
@@ -147,6 +151,7 @@ export class HyperionAPI {
         after?: string;
         before?: string;
     }): Promise<GetTransfersResponse> {
+        if (!this.provider) throw new Error('HyperionAPI requires a provider');
         const response = await this.provider.call({
             path: '/v2/history/get_transfers',
             params,
@@ -156,6 +161,7 @@ export class HyperionAPI {
     }
 
     async get_account(account: string): Promise<GetAccountResponse> {
+        if (!this.provider) throw new Error('HyperionAPI requires a provider');
         const response = await this.provider.call({
             path: '/v2/state/get_account',
             params: { account },
@@ -165,6 +171,7 @@ export class HyperionAPI {
     }
 
     async get_key_accounts(params: { public_key: string; details?: boolean }): Promise<GetKeyAccountsResponse> {
+        if (!this.provider) throw new Error('HyperionAPI requires a provider');
         const response = await this.provider.call({
             path: '/v2/state/get_key_accounts',
             params,
@@ -179,6 +186,7 @@ export class HyperionAPI {
         action?: string;
         permission?: string;
     }): Promise<GetLinksResponse> {
+        if (!this.provider) throw new Error('HyperionAPI requires a provider');
         const response = await this.provider.call({
             path: '/v2/state/get_links',
             params,
@@ -198,6 +206,7 @@ export class HyperionAPI {
         skip?: number;
         limit?: number;
     }): Promise<GetProposalsResponse> {
+        if (!this.provider) throw new Error('HyperionAPI requires a provider');
         const response = await this.provider.call({
             path: '/v2/state/get_proposals',
             params,
@@ -207,6 +216,7 @@ export class HyperionAPI {
     }
 
     async get_tokens(account: string): Promise<GetTokensResponse> {
+        if (!this.provider) throw new Error('HyperionAPI requires a provider');
         const response = await this.provider.call({
             path: '/v2/state/get_tokens',
             params: { account },
@@ -220,6 +230,7 @@ export class HyperionAPI {
         skip?: number;
         limit?: number;
     }): Promise<GetVotersResponse> {
+        if (!this.provider) throw new Error('HyperionAPI requires a provider');
         const response = await this.provider.call({
             path: '/v2/state/get_voters',
             params,
@@ -233,6 +244,7 @@ export class HyperionAPI {
         end_date?: string;
         unique_actors?: boolean;
     }): Promise<GetActionUsageResponse> {
+        if (!this.provider) throw new Error('HyperionAPI requires a provider');
         const response = await this.provider.call({
             path: '/v2/stats/get_action_usage',
             params,
@@ -242,6 +254,7 @@ export class HyperionAPI {
     }
 
     async get_api_usage(): Promise<GetApiUsageResponse> {
+        if (!this.provider) throw new Error('HyperionAPI requires a provider');
         const response = await this.provider.call({
             path: '/v2/stats/get_api_usage',
             method: 'GET',
@@ -255,6 +268,7 @@ export class HyperionAPI {
         before?: string;
         min_blocks?: number;
     }): Promise<GetMissedBlocksResponse> {
+        if (!this.provider) throw new Error('HyperionAPI requires a provider');
         const response = await this.provider.call({
             path: '/v2/stats/get_missed_blocks',
             params,
@@ -264,6 +278,7 @@ export class HyperionAPI {
     }
 
     async get_resource_usage(params: { code: string; action: string }): Promise<GetResourceUsageResponse> {
+        if (!this.provider) throw new Error('HyperionAPI requires a provider');
         const response = await this.provider.call({
             path: '/v2/stats/get_resource_usage',
             params,

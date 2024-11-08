@@ -104,8 +104,6 @@ export class APIClient {
 
     readonly provider: APIProvider;
     readonly hyperionProvider?: FetchProvider;
-    private _hyperionAPI?: HyperionAPI;
-
 
     constructor(options: APIClientOptions) {
         if (options.provider) {
@@ -125,13 +123,10 @@ export class APIClient {
         chain: new ChainAPI(this),
         history: new HistoryAPI(this),
     };
+    v2 = {
+        hyperion: new HyperionAPI(this)
+    };
 
-    // Use a getter to lazily initialize HyperionAPI since it's optional
-    get v2() {
-        if (!this._hyperionAPI && this.hyperionProvider) this._hyperionAPI = new HyperionAPI(this);
-        return { hyperion: this._hyperionAPI };
-    }
-    
     async call<T extends ABISerializableConstructor>(args: {
         method?: APIMethods;
         path: string;
