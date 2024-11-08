@@ -65,30 +65,31 @@ export class FetchProvider implements APIProvider {
         params?: Record<string, unknown>;
         method?: APIMethods;
         headers?: Record<string, string>;
-    }) {
-        let url = this.url + args.path;
+    }): Promise<APIResponse> {
         const method = args.method || 'POST';
-        const reqHeaders = {
-            ...this.headers,
-            ...args.headers,
-        };
+        let url = this.url + args.path;
+        const headers = { ...this.headers, ...args.headers };
     
-        let reqBody: string | undefined;
+        // Filter out undefined, null, and empty string values
+        const params = args.params
+            ? Object.entries(args.params)
+                  .filter(([_, value]) => value != null && value !== '')
+                  .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {})
+            : {};
+    
+        let body: string | undefined;
         
-        // Handle GET requests without a body
-        if (method === 'GET' && args.params) {
-            // Append query parameters to the URL
-            const queryParams = new URLSearchParams(args.params as Record<string, string>).toString();
-            url += `?${queryParams}`;
-        } else if (args.params) {
-            // For POST/PUT, include the params as JSON body
-            reqBody = JSON.stringify(args.params);
+        // If GET method, convert params to query string
+        if (method === 'GET' && Object.keys(params).length > 0) {
+            url += '?' + new URLSearchParams(params as Record<string, string>).toString();
+        } else if (Object.keys(params).length > 0) {
+            body = JSON.stringify(params);
         }
     
         const response = await this.fetch(url, {
             method,
-            body: method === 'GET' ? undefined : reqBody,
-            headers: reqHeaders,
+            body: method === 'GET' ? undefined : body,
+            headers,
         });
     
         const text = await response.text();
@@ -97,15 +98,9 @@ export class FetchProvider implements APIProvider {
         try {
             json = JSON.parse(text);
         } catch {
-            // ignore json parse errors
+            // Ignore JSON parse errors
         }
     
-        const headers : any = {};
-        
-        for (const [key, value] of response.headers.entries()) {
-            headers[key] = value;
-        }
-    
-        return { headers, status: response.status, json, text };
+        return { headers: Object.fromEntries(response.headers.entries()), status: response.status, json, text };
     }
 }
