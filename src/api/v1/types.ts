@@ -36,7 +36,7 @@ import {
     Weight,
 } from '../../chain';
 
-import {ABISerializableObject, ABISerializableType, Serializer} from '../../serializer';
+import {ABISerializableObject, ABISerializableType, Serializer, } from '../../serializer';
 
 @Struct.type('account_linked_action')
 export class AccountLinkedAction extends Struct {
