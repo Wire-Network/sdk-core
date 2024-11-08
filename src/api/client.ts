@@ -106,16 +106,15 @@ export class APIClient {
     readonly hyperionProvider?: FetchProvider;
 
     constructor(options: APIClientOptions) {
+        if (options.hyperionUrl && options.hyperionUrl != '') {
+            this.hyperionProvider = new FetchProvider(options.hyperionUrl, options);
+        }
         if (options.provider) {
             this.provider = options.provider;
         } else if (options.url) {
             this.provider = new FetchProvider(options.url, options);
         } else {
             throw new Error('Missing url or provider');
-        }
-
-        if (options.hyperionUrl && options.hyperionUrl != '') {
-            this.hyperionProvider = new FetchProvider(options.hyperionUrl, options);
         }
     }
 
