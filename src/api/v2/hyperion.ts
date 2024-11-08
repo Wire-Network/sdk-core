@@ -1,3 +1,4 @@
+import { APIClient } from '../client';
 import { FetchProvider } from '../provider';
 import {
     CheckTransactionResponse,
@@ -24,9 +25,9 @@ import {
 export class HyperionAPI {
     private provider: FetchProvider;
 
-    constructor(provider: FetchProvider) {
-        if (!provider) throw new Error('HyperionAPI requires a provider');
-        this.provider = provider;
+    constructor(api: APIClient) {
+        if (!api.hyperionProvider) throw new Error('HyperionAPI requires a provider');
+        this.provider = api.hyperionProvider;
     }
 
     async check_transaction(id: string): Promise<CheckTransactionResponse> {

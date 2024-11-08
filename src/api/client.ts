@@ -125,7 +125,7 @@ export class APIClient {
     };
 
     v2 = {
-        hyperion: this.hyperionProvider ? new HyperionAPI(this.hyperionProvider) : null,
+        hyperion: this.hyperionProvider ? new HyperionAPI(this) : null
     };
 
     async call<T extends ABISerializableConstructor>(args: {
