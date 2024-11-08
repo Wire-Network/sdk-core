@@ -23,11 +23,14 @@ import {
 } from './types';
 
 export class HyperionAPI {
-    private provider: FetchProvider;
+    get provider(){
+        return this.provider;
+    }
+    private _provider?: FetchProvider;
 
     constructor(api: APIClient) {
         if (!api.hyperionProvider) throw new Error('HyperionAPI requires a provider');
-        this.provider = api.hyperionProvider;
+        this._provider = api.hyperionProvider;
     }
 
     async check_transaction(id: string): Promise<CheckTransactionResponse> {
