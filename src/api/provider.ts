@@ -62,36 +62,50 @@ export class FetchProvider implements APIProvider {
 
     async call(args: {
         path: string;
-        params?: unknown;
+        params?: Record<string, unknown>;
         method?: APIMethods;
         headers?: Record<string, string>;
     }) {
-        const url = this.url + args.path;
-        const reqBody = args.params !== undefined ? JSON.stringify(args.params) : undefined;
+        let url = this.url + args.path;
+        const method = args.method || 'POST';
         const reqHeaders = {
             ...this.headers,
             ...args.headers,
         };
+    
+        let reqBody: string | undefined;
+        
+        // Handle GET requests without a body
+        if (method === 'GET' && args.params) {
+            // Append query parameters to the URL
+            const queryParams = new URLSearchParams(args.params as Record<string, string>).toString();
+            url += `?${queryParams}`;
+        } else if (args.params) {
+            // For POST/PUT, include the params as JSON body
+            reqBody = JSON.stringify(args.params);
+        }
+    
         const response = await this.fetch(url, {
-            method: args.method || 'POST',
-            body: reqBody,
+            method,
+            body: method === 'GET' ? undefined : reqBody,
             headers: reqHeaders,
         });
+    
         const text = await response.text();
         let json: any;
-
+    
         try {
             json = JSON.parse(text);
         } catch {
             // ignore json parse errors
         }
-
-        const headers = {};
-
+    
+        const headers : any = {};
+        
         for (const [key, value] of response.headers.entries()) {
             headers[key] = value;
         }
-
-        return {headers, status: response.status, json, text};
+    
+        return { headers, status: response.status, json, text };
     }
 }

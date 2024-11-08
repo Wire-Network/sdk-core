@@ -23,7 +23,7 @@ import {
 } from './types';
 
 export class HyperionAPI {
-    get provider() : FetchProvider | undefined { return this.api.hyperionProvider; }
+    get provider() : FetchProvider | undefined{ return this.api.hyperionProvider; }
 
     constructor(private api: APIClient) {}
 
