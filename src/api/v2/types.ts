@@ -1,65 +1,57 @@
-import { 
-    Action, 
-    BlockTimestamp, 
-    Checksum256, 
-    Name, 
-    Struct, 
-    UInt32 
-} from '../../chain';
+import { Action, Signature, Struct } from '../../chain';
 
-@Struct.type('transaction_receipt')
-export class TransactionReceipt extends Struct {
-    @Struct.field(Name) declare receiver: Name;
+
+@Struct.type('account_ram_delta')
+export class AccountRamDelta extends Struct {
+    @Struct.field('string') declare account: string;
+    @Struct.field('number') declare delta: number;
+}
+
+@Struct.type('auth_sequence')
+export class AuthSequence extends Struct {
+    @Struct.field('string') declare account: string;
+    @Struct.field('string') declare sequence: string;
+}
+
+@Struct.type('receipt')
+export class Receipt extends Struct {
+    @Struct.field('string') declare receiver: string;
     @Struct.field('string') declare global_sequence: string;
     @Struct.field('string') declare recv_sequence: string;
-    @Struct.field('array') declare auth_sequence: Array<{ account: string; sequence: string }>;
+    @Struct.field(AuthSequence, { array: true }) declare auth_sequence: AuthSequence[];
 }
 
-@Struct.type('action_data')
-export class ActionData extends Struct {
-    @Struct.field('object') declare header: {
-        timestamp: number;
-        producer: string;
-        confirmed: number;
-        previous: string;
-        transaction_mroot: string;
-        action_mroot: string;
-        schedule_version: number;
-        new_producers: any;
-    };
-}
 
-@Struct.type('transaction_action')
-export class TransactionAction extends Struct {
-    @Struct.field(UInt32) declare action_ordinal: UInt32;
-    @Struct.field(UInt32) declare creator_action_ordinal: UInt32;
-    @Struct.field(Action) declare act: {
-        account: string;
-        name: string;
-        authorization: Array<{ actor: string; permission: string }>;
-        data: ActionData;
-    };
-    @Struct.field(BlockTimestamp) declare timestamp: BlockTimestamp;
-    @Struct.field(UInt32) declare block_num: UInt32;
-    @Struct.field(Checksum256) declare block_id: Checksum256;
-    @Struct.field(Name) declare producer: Name;
-    @Struct.field(Checksum256) declare trx_id: Checksum256;
+@Struct.type('get_actions_response_action')
+export class GetActionsResponseAction extends Struct {
+    @Struct.field('number') declare action_ordinal: number;
+    @Struct.field('number') declare creator_action_ordinal: number;
+    @Struct.field(Action) declare act: Action;
+    @Struct.field(AccountRamDelta, { array: true }) declare account_ram_deltas: AccountRamDelta[];
+    @Struct.field(Signature, { array: true }) declare signatures: Signature[];
+    @Struct.field('string') declare '@timestamp': string;
+    @Struct.field('number') declare block_num: number;
+    @Struct.field('string') declare block_id: string;
+    @Struct.field('string') declare producer: string;
+    @Struct.field('string') declare trx_id: string;
     @Struct.field('number') declare global_sequence: number;
     @Struct.field('number') declare cpu_usage_us: number;
+    @Struct.field('number') declare net_usage_words: number;
     @Struct.field('number') declare code_sequence: number;
     @Struct.field('number') declare abi_sequence: number;
     @Struct.field('string') declare act_digest: string;
-    @Struct.field(TransactionReceipt, { array: true }) declare receipts: TransactionReceipt[];
+    @Struct.field(Receipt, { array: true }) declare receipts: Receipt[];
+    @Struct.field('string') declare timestamp: string;
 }
 
-@Struct.type('get_transaction_response')
+@Struct.type('get_transaction_response_v2')
 export class GetTransactionResponse extends Struct {
     @Struct.field('number') declare query_time_ms: number;
     @Struct.field('boolean') declare executed: boolean;
-    @Struct.field(Checksum256) declare trx_id: Checksum256;
-    @Struct.field(UInt32) declare lib: UInt32;
+    @Struct.field('string') declare trx_id: string;
+    @Struct.field('number') declare lib: number;
     @Struct.field('boolean') declare cached_lib: boolean;
-    @Struct.field(TransactionAction, { array: true }) declare actions: TransactionAction[];
-    @Struct.field(UInt32) declare last_indexed_block: UInt32;
-    @Struct.field(BlockTimestamp) declare last_indexed_block_time: BlockTimestamp;
+    @Struct.field(GetActionsResponseAction, { array: true }) declare actions: GetActionsResponseAction[];
+    @Struct.field('number') declare last_indexed_block: number;
+    @Struct.field('string') declare last_indexed_block_time: string;
 }
