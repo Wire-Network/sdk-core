@@ -86,7 +86,7 @@ export class ActionDataHeader extends Struct {
 }
 
 @Struct.type('get_actions_response_action')
-export class GetActionsResponseAction extends Struct {
+export class ActionObject extends Struct {
     @Struct.field('number') declare action_ordinal: number;
     @Struct.field('number') declare creator_action_ordinal: number;
     @Struct.field(Action) declare act: Action;
@@ -121,5 +121,5 @@ export class GetActionsResponse extends Struct {
     @Struct.field('number') declare last_indexed_block: number;
     @Struct.field('string') declare last_indexed_block_time: string;
     @Struct.field(GetActionsTotal) declare total: GetActionsTotal;
-    @Struct.field(GetActionsResponseAction, { array: true }) declare actions: GetActionsResponseAction[];
+    @Struct.field(ActionObject, { array: true }) declare actions: ActionObject[];
 }
