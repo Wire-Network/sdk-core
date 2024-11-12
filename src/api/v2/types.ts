@@ -55,23 +55,6 @@ export class GetTransactionResponse extends Struct {
     @Struct.field('string') declare last_indexed_block_time: string;
 }
 
-@Struct.type('get_actions_params')
-export class GetActionsParams extends Struct {
-    @Struct.field('string') declare account?: string;
-    @Struct.field('string') declare filter?: string;
-    @Struct.field('string') declare track?: string;
-    @Struct.field('number') declare skip?: number;
-    @Struct.field('number') declare limit?: number;
-    @Struct.field('string') declare sort?: string;
-    @Struct.field('string') declare block_num?: string;
-    @Struct.field('string') declare global_sequence?: string;
-    @Struct.field('string') declare after?: string;
-    @Struct.field('string') declare before?: string;
-    @Struct.field('boolean') declare simple?: boolean;
-    @Struct.field('boolean') declare noBinary?: boolean;
-    @Struct.field('boolean') declare checkLib?: boolean;
-}
-
 @Struct.type('action_data_header')
 export class ActionDataHeader extends Struct {
     @Struct.field('number') declare timestamp: number;
@@ -121,4 +104,20 @@ export class GetActionsResponse extends Struct {
     @Struct.field('string') declare last_indexed_block_time: string;
     @Struct.field(GetActionsTotal) declare total: GetActionsTotal;
     @Struct.field(ActionObject, { array: true }) declare actions: ActionObject[];
+}
+
+export interface GetActionsParams {
+    account?: string;
+    filter?: string;
+    track?: string;
+    skip?: number;
+    limit?: number;
+    sort?: 'asc' | 'desc';
+    block_num?: string;
+    global_sequence?: string;
+    after?: string;
+    before?: string;
+    simple?: boolean;
+    noBinary?: boolean;
+    checkLib?: boolean;
 }
