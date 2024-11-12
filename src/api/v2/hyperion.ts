@@ -1,6 +1,6 @@
 import { APIClient } from '../client';
 import { FetchProvider } from '../provider';
-import { GetActionsParams, GetActionsResponse, GetTransactionResponse } from './types';
+import { GetActionsParams, GetActionsResponse, GetTransactionResponse, HealthResponse } from './types';
 
 export class HyperionAPI {
     get provider(): FetchProvider | undefined { 
@@ -40,5 +40,16 @@ export class HyperionAPI {
         });
 
         return response.json as GetActionsResponse;
+    }
+
+    async health(): Promise<HealthResponse> {
+        if (!this.provider) throw new Error('HyperionAPI requires a provider');
+
+        const response = await this.provider.call({
+            path: '/v2/health',
+            method: 'GET',
+        });
+
+        return response.json as HealthResponse;
     }
 }

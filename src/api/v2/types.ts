@@ -106,6 +106,53 @@ export class GetActionsResponse extends Struct {
     @Struct.field(ActionObject, { array: true }) declare actions: ActionObject[];
 }
 
+@Struct.type('health_service')
+export class HealthService extends Struct {
+    @Struct.field('string') declare service: string;
+    @Struct.field('string') declare status: string;
+    @Struct.field('number') declare time: number;
+    @Struct.field('any', { optional: true }) declare service_data?: any;
+}
+
+@Struct.type('health_features_streaming')
+export class HealthFeaturesStreaming extends Struct {
+    @Struct.field('boolean') declare enable: boolean;
+    @Struct.field('boolean') declare traces: boolean;
+    @Struct.field('boolean') declare deltas: boolean;
+}
+
+@Struct.type('health_features_tables')
+export class HealthFeaturesTables extends Struct {
+    @Struct.field('boolean') declare proposals: boolean;
+    @Struct.field('boolean') declare accounts: boolean;
+    @Struct.field('boolean') declare voters: boolean;
+}
+
+@Struct.type('health_features')
+export class HealthFeatures extends Struct {
+    @Struct.field(HealthFeaturesStreaming) declare streaming: HealthFeaturesStreaming;
+    @Struct.field(HealthFeaturesTables) declare tables: HealthFeaturesTables;
+    @Struct.field('boolean') declare index_deltas: boolean;
+    @Struct.field('boolean') declare index_transfer_memo: boolean;
+    @Struct.field('boolean') declare index_all_deltas: boolean;
+    @Struct.field('boolean') declare deferred_trx: boolean;
+    @Struct.field('boolean') declare failed_trx: boolean;
+    @Struct.field('boolean') declare resource_limits: boolean;
+    @Struct.field('boolean') declare resource_usage: boolean;
+}
+
+@Struct.type('health_response')
+export class HealthResponse extends Struct {
+    @Struct.field('string') declare version: string;
+    @Struct.field('string') declare version_hash: string;
+    @Struct.field('string') declare host: string;
+    @Struct.field(HealthService, { array: true }) declare health: HealthService[];
+    @Struct.field(HealthFeatures) declare features: HealthFeatures;
+    @Struct.field('number') declare query_time_ms: number;
+    @Struct.field('number') declare last_indexed_block: number;
+    @Struct.field('string') declare last_indexed_block_time: string;
+}
+
 export interface GetActionsParams {
     account?: string;
     filter?: string;

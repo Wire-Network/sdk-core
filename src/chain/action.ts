@@ -39,7 +39,7 @@ export interface ActionFields extends ActionBase {
 
 /** Action type that may or may not have its data encoded */
 export interface AnyAction extends ActionBase {
-    data: BytesType | ABISerializableObject | Record<string, any>;
+    data: BytesType | ABISerializableObject | Record<string, any> | any ;
 }
 
 export type ActionType = Action | ActionFields;
