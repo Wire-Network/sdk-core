@@ -1,5 +1,4 @@
-import { Action, Signature, Struct } from '../../chain';
-
+import { AnyAction, Signature, Struct } from '../../chain';
 
 @Struct.type('account_ram_delta')
 export class AccountRamDelta extends Struct {
@@ -26,7 +25,7 @@ export class Receipt extends Struct {
 export class GetTransactionResponseAction extends Struct {
     @Struct.field('number') declare action_ordinal: number;
     @Struct.field('number') declare creator_action_ordinal: number;
-    @Struct.field(Action) declare act: Action;
+    @Struct.field('AnyAction') declare act: AnyAction;
     @Struct.field(AccountRamDelta, { array: true }) declare account_ram_deltas: AccountRamDelta[];
     @Struct.field(Signature, { array: true }) declare signatures: Signature[];
     @Struct.field('string') declare '@timestamp': string;
@@ -89,7 +88,7 @@ export class ActionDataHeader extends Struct {
 export class ActionObject extends Struct {
     @Struct.field('number') declare action_ordinal: number;
     @Struct.field('number') declare creator_action_ordinal: number;
-    @Struct.field(Action) declare act: Action;
+    @Struct.field('AnyAction') declare act: AnyAction;
     @Struct.field(AccountRamDelta, { array: true }) declare account_ram_deltas: AccountRamDelta[];
     @Struct.field(Signature, { array: true }) declare signatures: Signature[];
     @Struct.field('string') declare '@timestamp': string;
