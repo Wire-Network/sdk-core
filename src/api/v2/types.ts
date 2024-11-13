@@ -1,4 +1,4 @@
-import { AnyAction, Signature, Struct } from '../../chain';
+import { AnyAction, NameType, Signature, Struct } from '../../chain';
 
 @Struct.type('account_ram_delta')
 export class AccountRamDelta extends Struct {
@@ -152,19 +152,148 @@ export class HealthResponse extends Struct {
     @Struct.field('number') declare last_indexed_block: number;
     @Struct.field('string') declare last_indexed_block_time: string;
 }
+@Struct.type('api_usage_total')
+export class ApiUsageTotal extends Struct {
+    @Struct.field('any') declare responses: Record<string, Record<string, number>>;
+}
+
+@Struct.type('api_usage_bucket')
+export class ApiUsageBucket extends Struct {
+    @Struct.field('string') declare timestamp: string;
+    @Struct.field('any') declare responses: Record<string, Record<string, number>>;
+}
+
+@Struct.type('api_usage_response')
+export class ApiUsageResponse extends Struct {
+    @Struct.field('number') declare query_time_ms: number;
+    @Struct.field('number') declare last_indexed_block: number;
+    @Struct.field('string') declare last_indexed_block_time: string;
+    @Struct.field(ApiUsageTotal) declare total: ApiUsageTotal;
+    @Struct.field(ApiUsageBucket, { array: true }) declare buckets: ApiUsageBucket[];
+}
+
+@Struct.type('missed_blocks_stats')
+export class MissedBlocksStats extends Struct {
+    @Struct.field('any') declare by_producer: Record<string, number>;
+}
+
+@Struct.type('missed_blocks_response')
+export class MissedBlocksResponse extends Struct {
+    @Struct.field('number') declare query_time_ms: number;
+    @Struct.field('number') declare last_indexed_block: number;
+    @Struct.field('string') declare last_indexed_block_time: string;
+    @Struct.field(MissedBlocksStats) declare stats: MissedBlocksStats;
+    @Struct.field('any', { array: true }) declare events: any[];
+}
+
+@Struct.type('resource_usage_stats')
+export class ResourceUsageStats extends Struct {
+    @Struct.field('number') declare count: number;
+    @Struct.field('number', { optional: true }) declare min: number | null;
+    @Struct.field('number', { optional: true }) declare max: number | null;
+    @Struct.field('number', { optional: true }) declare avg: number | null;
+    @Struct.field('number') declare sum: number;
+    @Struct.field('number', { optional: true }) declare sum_of_squares: number | null;
+    @Struct.field('number', { optional: true }) declare variance: number | null;
+    @Struct.field('number', { optional: true }) declare variance_population: number | null;
+    @Struct.field('number', { optional: true }) declare variance_sampling: number | null;
+    @Struct.field('number', { optional: true }) declare std_deviation: number | null;
+    @Struct.field('number', { optional: true }) declare std_deviation_population: number | null;
+    @Struct.field('number', { optional: true }) declare std_deviation_sampling: number | null;
+    @Struct.field('number', { optional: true }) declare std_deviation_bounds_upper: number | null;
+    @Struct.field('number', { optional: true }) declare std_deviation_bounds_lower: number | null;
+    @Struct.field('number', { optional: true }) declare std_deviation_bounds_upper_population: number | null;
+    @Struct.field('number', { optional: true }) declare std_deviation_bounds_lower_population: number | null;
+    @Struct.field('number', { optional: true }) declare std_deviation_bounds_upper_sampling: number | null;
+    @Struct.field('number', { optional: true }) declare std_deviation_bounds_lower_sampling: number | null;
+}
+
+@Struct.type('resource_usage_percentiles')
+export class ResourceUsagePercentiles extends Struct {
+    @Struct.field('number', { optional: true }) declare '1.0': number | null;
+    @Struct.field('number', { optional: true }) declare '5.0': number | null;
+    @Struct.field('number', { optional: true }) declare '25.0': number | null;
+    @Struct.field('number', { optional: true }) declare '50.0': number | null;
+    @Struct.field('number', { optional: true }) declare '75.0': number | null;
+    @Struct.field('number', { optional: true }) declare '95.0': number | null;
+    @Struct.field('number', { optional: true }) declare '99.0': number | null;
+}
+
+@Struct.type('resource_usage')
+export class ResourceUsage extends Struct {
+    @Struct.field(ResourceUsageStats) declare stats: ResourceUsageStats;
+    @Struct.field(ResourceUsagePercentiles) declare percentiles: ResourceUsagePercentiles;
+}
+
+@Struct.type('get_resource_usage_response')
+export class GetResourceUsageResponse extends Struct {
+    @Struct.field(ResourceUsage) declare cpu: ResourceUsage;
+    @Struct.field(ResourceUsage) declare net: ResourceUsage;
+    @Struct.field('boolean') declare cached: boolean;
+    @Struct.field('number') declare query_time_ms: number;
+    @Struct.field('number') declare last_indexed_block: number;
+    @Struct.field('string') declare last_indexed_block_time: string;
+}
 
 export interface GetActionsParams {
+    /**
+     * Notified account to filter actions.
+     */
     account?: string;
+    /**
+     * Filter actions based on code:name (e.g., `eosio.token:transfer`).
+     */
     filter?: string;
-    track?: string;
+    /**
+     * Track total results (count). Accepts a number or `true` for total count tracking.
+     */
+    track?: string | number;
+    /**
+     * Number of results to skip.
+     */
     skip?: number;
+    /**
+     * Limit the number of results per page.
+     */
     limit?: number;
-    sort?: 'asc' | 'desc';
-    block_num?: string;
-    global_sequence?: string;
+    /**
+     * Sort direction for results. Accepts `asc`, `desc`, `1`, or `-1`.
+     */
+    sort?: 'asc' | 'desc' | '1' | '-1';
+    /**
+     * Filter actions after the specified date (ISO8601 format).
+     */
+    after?: string;
+    /**
+     * Filter actions before the specified date (ISO8601 format).
+     */
+    before?: string;
+    /**
+     * Simplified output mode.
+     */
+    simple?: boolean;
+    /**
+     * Search only the latest hot index.
+     */
+    hot_only?: boolean;
+    /**
+     * Exclude large binary data from the response.
+     */
+    noBinary?: boolean;
+    /**
+     * Perform a reversibility check.
+     */
+    checkLib?: boolean;
+}
+
+export interface MissedBlocksParams {
+    producer?: NameType;
     after?: string;
     before?: string;
-    simple?: boolean;
-    noBinary?: boolean;
-    checkLib?: boolean;
+    min_blocks?: number;
+}
+
+export interface GetResourceUsageParams {
+    code: NameType;
+    action: NameType;
 }
