@@ -4,6 +4,7 @@ import {abiDecode} from '../serializer/decoder';
 import {ChainAPI} from './v1/chain';
 import {HistoryAPI} from './v1/history';
 import {BuiltinTypes} from '../serializer/builtins';
+import { HyperionAPI } from './v2/hyperion';
 
 export {ChainAPI, HistoryAPI};
 
@@ -12,6 +13,8 @@ export interface APIClientOptions extends FetchProviderOptions {
     url?: string;
     /** API provider to use, if omitted and the url option is set the default provider will be used.  */
     provider?: APIProvider;
+    /** URL specifically for Hyperion API, if available */
+    hyperionUrl?: string;
 }
 
 export interface APIErrorDetail {
@@ -100,8 +103,12 @@ export class APIClient {
     static __className = 'APIClient';
 
     readonly provider: APIProvider;
+    readonly hyperionProvider?: FetchProvider;
 
     constructor(options: APIClientOptions) {
+        if (options.hyperionUrl && options.hyperionUrl != '') {
+            this.hyperionProvider = new FetchProvider(options.hyperionUrl, options);
+        }
         if (options.provider) {
             this.provider = options.provider;
         } else if (options.url) {
@@ -114,6 +121,9 @@ export class APIClient {
     v1 = {
         chain: new ChainAPI(this),
         history: new HistoryAPI(this),
+    };
+    v2 = {
+        hyperion: new HyperionAPI(this)
     };
 
     async call<T extends ABISerializableConstructor>(args: {

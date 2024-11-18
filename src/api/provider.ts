@@ -62,36 +62,45 @@ export class FetchProvider implements APIProvider {
 
     async call(args: {
         path: string;
-        params?: unknown;
+        params?: Record<string, unknown>;
         method?: APIMethods;
         headers?: Record<string, string>;
-    }) {
-        const url = this.url + args.path;
-        const reqBody = args.params !== undefined ? JSON.stringify(args.params) : undefined;
-        const reqHeaders = {
-            ...this.headers,
-            ...args.headers,
-        };
+    }): Promise<APIResponse> {
+        const method = args.method || 'POST';
+        let url = this.url + args.path;
+        const headers = { ...this.headers, ...args.headers };
+    
+        // Filter out undefined, null, and empty string values
+        const params = args.params
+            ? Object.entries(args.params)
+                  .filter(([_, value]) => value != null && value !== '')
+                  .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {})
+            : {};
+    
+        let body: string | undefined;
+        
+        // If GET method, convert params to query string
+        if (method === 'GET' && Object.keys(params).length > 0) {
+            url += '?' + new URLSearchParams(params as Record<string, string>).toString();
+        } else if (Object.keys(params).length > 0) {
+            body = JSON.stringify(params);
+        }
+    
         const response = await this.fetch(url, {
-            method: args.method || 'POST',
-            body: reqBody,
-            headers: reqHeaders,
+            method,
+            body: method === 'GET' ? undefined : body,
+            headers,
         });
+    
         const text = await response.text();
         let json: any;
-
+    
         try {
             json = JSON.parse(text);
         } catch {
-            // ignore json parse errors
+            // Ignore JSON parse errors
         }
-
-        const headers = {};
-
-        for (const [key, value] of response.headers.entries()) {
-            headers[key] = value;
-        }
-
-        return {headers, status: response.status, json, text};
+    
+        return { headers: Object.fromEntries(response.headers.entries()), status: response.status, json, text };
     }
 }
