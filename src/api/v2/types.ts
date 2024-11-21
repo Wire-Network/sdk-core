@@ -286,6 +286,125 @@ export interface GetActionsParams {
     checkLib?: boolean;
 }
 
+@Struct.type('permission')
+export class Permission extends Struct {
+    @Struct.field('string') declare perm_name: string;
+    @Struct.field('string') declare parent: string;
+    @Struct.field('any') declare required_auth: {
+        threshold: number;
+        keys: { key: string; weight: number }[];
+        accounts: any[];
+        waits: any[];
+    };
+}
+
+@Struct.type('limit')
+export class Limit extends Struct {
+    @Struct.field('number') declare used: number;
+    @Struct.field('number') declare available: number;
+    @Struct.field('number') declare max: number;
+}
+
+@Struct.type('total_resources')
+export class TotalResources extends Struct {
+    @Struct.field('string') declare owner: string;
+    @Struct.field('string') declare net_weight: string;
+    @Struct.field('string') declare cpu_weight: string;
+    @Struct.field('number') declare ram_bytes: number;
+}
+
+@Struct.type('self_delegated_bandwidth')
+export class SelfDelegatedBandwidth extends Struct {
+    @Struct.field('string') declare from: string;
+    @Struct.field('string') declare to: string;
+    @Struct.field('string') declare net_weight: string;
+    @Struct.field('string') declare cpu_weight: string;
+}
+
+@Struct.type('voter_info')
+export class VoterInfo extends Struct {
+    @Struct.field('string') declare owner: string;
+    @Struct.field('string') declare proxy: string;
+    @Struct.field('string[]') declare producers: string[];
+    @Struct.field('number') declare staked: number;
+    @Struct.field('string') declare last_vote_weight: string;
+    @Struct.field('string') declare proxied_vote_weight: string;
+    @Struct.field('number') declare is_proxy: number;
+    @Struct.field('number') declare flags1: number;
+    @Struct.field('number') declare reserved2: number;
+    @Struct.field('string') declare reserved3: string;
+}
+
+@Struct.type('account')
+export class Account extends Struct {
+    @Struct.field('string') declare account_name: string;
+    @Struct.field('number') declare head_block_num: number;
+    @Struct.field('string') declare head_block_time: string;
+    @Struct.field('boolean') declare privileged: boolean;
+    @Struct.field('string') declare last_code_update: string;
+    @Struct.field('string') declare created: string;
+    @Struct.field('string') declare core_liquid_balance: string;
+    @Struct.field('number') declare ram_quota: number;
+    @Struct.field('number') declare net_weight: number;
+    @Struct.field('number') declare cpu_weight: number;
+    @Struct.field(Limit) declare net_limit: Limit;
+    @Struct.field(Limit) declare cpu_limit: Limit;
+    @Struct.field('number') declare ram_usage: number;
+    @Struct.field(Permission, { array: true }) declare permissions: Permission[];
+    @Struct.field(TotalResources) declare total_resources: TotalResources;
+    @Struct.field(SelfDelegatedBandwidth) declare self_delegated_bandwidth: SelfDelegatedBandwidth;
+    @Struct.field('any', { optional: true }) declare refund_request?: any;
+    @Struct.field(VoterInfo) declare voter_info: VoterInfo;
+    @Struct.field('any', { optional: true }) declare rex_info?: any;
+    @Struct.field(Limit) declare subjective_cpu_bill_limit: Limit;
+}
+
+@Struct.type('link')
+export class Link extends Struct {
+    @Struct.field('string') declare timestamp: string;
+    @Struct.field('string') declare permission: string;
+    @Struct.field('string') declare code: string;
+    @Struct.field('string') declare action: string;
+}
+
+@Struct.type('token')
+export class Token extends Struct {
+    @Struct.field('string') declare symbol: string;
+    @Struct.field('number') declare precision: number;
+    @Struct.field('number') declare amount: number;
+    @Struct.field('string') declare contract: string;
+}
+
+@Struct.type('action')
+export class Action extends Struct {
+    @Struct.field('string') declare '@timestamp': string;
+    @Struct.field('string') declare timestamp: string;
+    @Struct.field('number') declare block_num: number;
+    @Struct.field('string') declare block_id: string;
+    @Struct.field('string') declare trx_id: string;
+    @Struct.field('any') declare act: any;
+    @Struct.field(Receipt, { array: true }) declare receipts: Receipt[];
+    @Struct.field('number') declare cpu_usage_us: number;
+    @Struct.field('number') declare net_usage_words: number;
+    @Struct.field('number') declare global_sequence: number;
+    @Struct.field('string') declare producer: string;
+    @Struct.field('number') declare action_ordinal: number;
+    @Struct.field('number') declare creator_action_ordinal: number;
+    @Struct.field(Signature, { array: true }) declare signatures: Signature[];
+}
+
+@Struct.type('get_account_response')
+export class GetAccountResponse extends Struct {
+    @Struct.field('number') declare query_time_ms: number;
+    @Struct.field('number') declare last_indexed_block: number;
+    @Struct.field('string') declare last_indexed_block_time: string;
+    @Struct.field(Account) declare account: Account;
+    @Struct.field(Link, { array: true }) declare links: Link[];
+    @Struct.field(Token, { array: true }) declare tokens: Token[];
+    @Struct.field('number') declare total_actions: number;
+    @Struct.field(Action, { array: true }) declare actions: Action[];
+}
+
 export interface MissedBlocksParams {
     producer?: NameType;
     after?: string;
