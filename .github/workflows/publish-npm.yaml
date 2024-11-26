@@ -41,6 +41,18 @@ jobs:
           scope: '@wireio'
           cache: 'npm'
 
+      - name: Check version match
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          if [[ "v$PACKAGE_VERSION" != "$TAG_NAME" ]]; then
+            echo "Error: package.json version (v$PACKAGE_VERSION) does not match the git tag ($TAG_NAME). Please update package.json and rerun the action."
+            exit 1
+          else
+            echo "Version match ✅"
+          fi
+        env:
+          TAG_NAME: ${{ env.TAG_NAME }}
+          
       - name: Install dependencies
         run: npm ci
 
