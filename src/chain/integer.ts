@@ -486,11 +486,37 @@ export class UInt128 extends Int {
     static isSigned = false;
 }
 
-export type UInt256Type = UInt128 | IntType;
+export type UInt256Type = UInt256 | IntType;
 export class UInt256 extends Int {
     static abiName = 'uint256';
     static byteWidth = 32;
     static isSigned = false;
+}
+
+// Struct to match the 256-bit integer in Wire C++ Core contract
+export class Uint256Struct {
+    low: UInt128;
+    high: UInt128;
+
+    constructor(low: UInt128, high: UInt128) {
+        this.low = low;
+        this.high = high;
+    }
+
+    static fromNumber(value: number | string): Uint256Struct {
+        // Convert the input to a UInt256 (a 256-bit integer)
+        const u256 = UInt256.from(value);
+
+        // Extract low 128 bits
+        // 128 bits = 16 bytes, so we mask with 2^(128) - 1
+        const mask = new UInt128(new BN('ffffffffffffffffffffffffffffffff', 16));
+        const lowBN = u256.value.and(mask.value); 
+        const highBN = u256.value.shrn(128);
+
+        const low = UInt128.from(lowBN);
+        const high = UInt128.from(highBN);
+        return new Uint256Struct(low, high);
+    }
 }
 
 export type VarIntType = VarInt | IntType;
