@@ -31,7 +31,7 @@ export class MockProvider implements APIProvider {
         }
     }
 
-    async call(args: {path: string; params?: unknown; method?: APIMethods}) {
+    async call(args: {path: string; params?: Record<string, unknown> | undefined; method?: APIMethods}) {
         const filename = this.getFilename(args.path, args.params);
 
         if (process.env['MOCK_RECORD'] !== 'overwrite') {

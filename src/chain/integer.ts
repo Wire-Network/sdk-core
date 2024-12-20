@@ -486,6 +486,13 @@ export class UInt128 extends Int {
     static isSigned = false;
 }
 
+export type UInt256Type = UInt128 | IntType;
+export class UInt256 extends Int {
+    static abiName = 'uint256';
+    static byteWidth = 32;
+    static isSigned = false;
+}
+
 export type VarIntType = VarInt | IntType;
 export class VarInt extends Int {
     static abiName = 'varint32';
@@ -526,6 +533,7 @@ export type AnyInt =
     | UInt32Type
     | UInt64Type
     | UInt128Type
+    | UInt256Type
     | VarIntType
     | VarUIntType;
 
