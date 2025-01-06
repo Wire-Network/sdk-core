@@ -1,4 +1,11 @@
-import { AnyAction, NameType, Signature, Struct } from '../../chain';
+import { AnyAction, Checksum256Type, NameType, Signature, Struct } from '../../chain';
+
+
+export interface HyperionBaseResponse {
+    query_time_ms: number;
+    last_indexed_block: number;
+    last_indexed_block_time: string;
+}
 
 @Struct.type('account_ram_delta')
 export class AccountRamDelta extends Struct {
@@ -142,12 +149,13 @@ export class HealthFeatures extends Struct {
 }
 
 @Struct.type('health_response')
-export class HealthResponse extends Struct {
+export class HealthResponse extends Struct implements HyperionBaseResponse {
     @Struct.field('string') declare version: string;
     @Struct.field('string') declare version_hash: string;
     @Struct.field('string') declare host: string;
     @Struct.field(HealthService, { array: true }) declare health: HealthService[];
     @Struct.field(HealthFeatures) declare features: HealthFeatures;
+    // HyperionBaseResponse
     @Struct.field('number') declare query_time_ms: number;
     @Struct.field('number') declare last_indexed_block: number;
     @Struct.field('string') declare last_indexed_block_time: string;
@@ -164,12 +172,13 @@ export class ApiUsageBucket extends Struct {
 }
 
 @Struct.type('api_usage_response')
-export class ApiUsageResponse extends Struct {
+export class ApiUsageResponse extends Struct implements HyperionBaseResponse {
+    @Struct.field(ApiUsageTotal) declare total: ApiUsageTotal;
+    @Struct.field(ApiUsageBucket, { array: true }) declare buckets: ApiUsageBucket[];
+    // HyperionBaseResponse
     @Struct.field('number') declare query_time_ms: number;
     @Struct.field('number') declare last_indexed_block: number;
     @Struct.field('string') declare last_indexed_block_time: string;
-    @Struct.field(ApiUsageTotal) declare total: ApiUsageTotal;
-    @Struct.field(ApiUsageBucket, { array: true }) declare buckets: ApiUsageBucket[];
 }
 
 @Struct.type('missed_blocks_stats')
@@ -178,12 +187,13 @@ export class MissedBlocksStats extends Struct {
 }
 
 @Struct.type('missed_blocks_response')
-export class MissedBlocksResponse extends Struct {
+export class MissedBlocksResponse extends Struct implements HyperionBaseResponse {
+    @Struct.field(MissedBlocksStats) declare stats: MissedBlocksStats;
+    @Struct.field('any', { array: true }) declare events: any[];
+    // HyperionBaseResponse
     @Struct.field('number') declare query_time_ms: number;
     @Struct.field('number') declare last_indexed_block: number;
     @Struct.field('string') declare last_indexed_block_time: string;
-    @Struct.field(MissedBlocksStats) declare stats: MissedBlocksStats;
-    @Struct.field('any', { array: true }) declare events: any[];
 }
 
 @Struct.type('resource_usage_stats')
@@ -226,10 +236,11 @@ export class ResourceUsage extends Struct {
 }
 
 @Struct.type('get_resource_usage_response')
-export class GetResourceUsageResponse extends Struct {
+export class GetResourceUsageResponse extends Struct implements HyperionBaseResponse {
     @Struct.field(ResourceUsage) declare cpu: ResourceUsage;
     @Struct.field(ResourceUsage) declare net: ResourceUsage;
     @Struct.field('boolean') declare cached: boolean;
+    // HyperionBaseResponse
     @Struct.field('number') declare query_time_ms: number;
     @Struct.field('number') declare last_indexed_block: number;
     @Struct.field('string') declare last_indexed_block_time: string;
@@ -394,7 +405,7 @@ export class Action extends Struct {
 }
 
 @Struct.type('get_account_response')
-export class GetAccountResponse extends Struct {
+export class GetAccountResponse extends Struct implements HyperionBaseResponse {
     @Struct.field('number') declare query_time_ms: number;
     @Struct.field('number') declare last_indexed_block: number;
     @Struct.field('string') declare last_indexed_block_time: string;
@@ -404,7 +415,6 @@ export class GetAccountResponse extends Struct {
     @Struct.field('number') declare total_actions: number;
     @Struct.field(Action, { array: true }) declare actions: Action[];
 }
-
 export interface MissedBlocksParams {
     producer?: NameType;
     after?: string;
@@ -416,3 +426,33 @@ export interface GetResourceUsageParams {
     code: NameType;
     action: NameType;
 }
+
+export interface GetCreatedAccountsParams {
+    /**
+     * creator account
+     */
+    account: NameType;
+    /**
+     * Number of results to skip.
+     */
+    skip?: number;
+    /**
+     * Limit the number of results per page.
+     */
+    limit?: number;
+}
+export interface CreatedAccount {
+    name: string;
+    timestamp: string;
+    trx_id: string;
+}
+
+@Struct.type('get_account_response')
+export class GetCreatedAccountsResponse extends Struct implements HyperionBaseResponse {
+    @Struct.field('CreatedAccount[]') declare accounts: CreatedAccount[];
+    // HyperionBaseResponse
+    @Struct.field('number') declare query_time_ms: number;
+    @Struct.field('number') declare last_indexed_block: number;
+    @Struct.field('string') declare last_indexed_block_time: string;
+}
+

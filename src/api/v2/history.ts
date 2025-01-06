@@ -1,6 +1,6 @@
 import { APIClient } from "../client";
 import { FetchProvider } from "../provider";
-import { GetActionsParams, GetActionsResponse, GetTransactionResponse } from "./types";
+import { GetActionsParams, GetActionsResponse, GetCreatedAccountsParams, GetCreatedAccountsResponse, GetTransactionResponse } from "./types";
    
 export class HistoryAPIv2 {
     get provider(): FetchProvider | undefined { return this.api.hyperionProvider }
@@ -38,5 +38,22 @@ export class HistoryAPIv2 {
         });
 
         return response.json as GetActionsResponse;
+    }
+
+    /**
+     * Fetch all accounts created by a specified account
+     * @param params - Query parameters for fetching created accounts
+     * @returns A promise that resolves to a GetCreatedAccountsResponse object containing an array of CreatedAccounts
+     */
+    async get_created_accounts(params: GetCreatedAccountsParams): Promise<GetCreatedAccountsResponse> {
+        if (!this.provider) throw new Error('HyperionAPI requires a provider');
+
+        const response = await this.provider.call({
+            path: `/v2/history/get_created_accounts`,
+            params: params as any || {},
+            method: 'GET',
+        });
+
+        return response.json as GetCreatedAccountsResponse;
     }
 }
