@@ -66,16 +66,16 @@ suite('api v1', function () {
     this.timeout(10 * 10000);
 
     test('FetchProvider methods', async function () {
-        const defaultresponse = await jungle4.provider.call({
+        const defaultresponse = await jungle4.v1Provider.call({
             path: '/v1/chain/get_info',
         });
         assert.equal(defaultresponse.status, 200);
-        const getresponse = await jungle4.provider.call({
+        const getresponse = await jungle4.v1Provider.call({
             path: '/v1/chain/get_info',
             method: 'GET',
         });
         assert.equal(getresponse.status, 200);
-        const postresponse = await jungle4.provider.call({
+        const postresponse = await jungle4.v1Provider.call({
             path: '/v1/chain/get_info',
             method: 'GET',
         });
@@ -88,7 +88,7 @@ suite('api v1', function () {
                 reqHeaders: {'X-test': 'true'},
             }),
         });
-        const defaultresponse = await test.provider.call({
+        const defaultresponse = await test.v1Provider.call({
             path: '/v1/chain/get_info',
         });
         assert.equal(defaultresponse.status, 200);

@@ -495,6 +495,10 @@ export class UInt256 extends Int {
 
 // Struct to match the 256-bit integer in Wire C++ Core contract
 export class Uint256Struct {
+    public static readonly DECIMALS = 18;
+    public static readonly SCALE = new BN(10).pow(new BN(Uint256Struct.DECIMALS));
+    public static readonly MAX_UINT256 = new BN(1).shln(256).isubn(1);  // 2^256 - 1
+
     low: UInt128;
     high: UInt128;
 
@@ -503,24 +507,226 @@ export class Uint256Struct {
         this.high = high;
     }
 
+    /**
+     * Create a Uint256Struct from a number, string, or UInt128 instance.
+     * Interprets all values as 18-decimal fixed-point.
+     */
     static from(value: number | string | UInt128): Uint256Struct {
-        // Convert the input to a scaled BN (equivalent to parseUnits(value, 18))
-        const [whole, fractional = ""] = value.toString().split(".");
-        const decimals = 18;
-        const wholePart = new BN(whole).mul(new BN(10).pow(new BN(decimals)));
-        const fractionalPart = new BN(fractional.padEnd(decimals, "0").slice(0, decimals));
+        // Convert incoming to a decimal string
+        const valueStr = value.toString();
+        const [whole, frac = ""] = valueStr.split(".");
+
+        const wholePart = new BN(whole || "0", 10).mul(this.SCALE);
+        const fracPartStr = frac.padEnd(this.DECIMALS, "0").slice(0, this.DECIMALS);
+        const fractionalPart = new BN(fracPartStr, 10);
+
+        // Combine into one scaled BN
         const scaled = wholePart.add(fractionalPart);
 
-        // Extract the low and high 128 bits
-        const mask = new BN("ffffffffffffffffffffffffffffffff", 16); // 128-bit mask
-        const lowBN = scaled.and(mask); // Low 128 bits
-        const highBN = scaled.shrn(128); // High 128 bits
+        // Check 2^256 overflow
+        if (scaled.gt(this.MAX_UINT256)) {
+            throw new Error(`Value ${value} exceeds 256 bits once scaled`);
+        }
 
-        // Convert to UInt128 instances
-        const low = UInt128.from(lowBN);
-        const high = UInt128.from(highBN);
+        // Now split into low/high 128 bits
+        const mask128 = new BN("ffffffffffffffffffffffffffffffff", 16); // 128 bits
+        const lowBN = scaled.and(mask128);
+        const highBN = scaled.shrn(128);
 
-        return new Uint256Struct(low, high);
+        return new Uint256Struct(
+            UInt128.from(lowBN), 
+            UInt128.from(highBN),
+        );
+    }
+
+    /**
+     * Construct a Uint256Struct from a raw 256-bit BN (no scaling).
+     * Internal helper for add/sub/mul/div.
+     */
+    static fromRaw(raw: BN): Uint256Struct {
+        if (raw.isNeg()) {
+            throw new Error("Cannot represent negative values in Uint256Struct");
+        }
+
+        if (raw.gt(this.MAX_UINT256)) {
+            throw new Error("Uint256 overflow (larger than 2^256 - 1)");
+        }
+
+        const mask128 = new BN("ffffffffffffffffffffffffffffffff", 16);
+        const lowBN = raw.and(mask128);
+        const highBN = raw.shrn(128);
+
+        return new Uint256Struct(
+            UInt128.from(lowBN),
+            UInt128.from(highBN),
+        );
+    }
+
+    /**
+     * Helper to combine `low` + `high` into a single BN that includes the
+     * _already-scaled_ 10^18 factor.
+     */
+    raw(): BN {
+        const lowBN = Uint256Struct.u128ToBN(this.low);
+        const highBN = Uint256Struct.u128ToBN(this.high).shln(128);
+        return highBN.add(lowBN);
+    }
+
+    /**
+     * Convert the Uint256Struct to a human-readable string,
+     * e.g. "123.456" for internal BN "123456000000000000000".
+     */
+    toString(): string {
+        const scaled = this.raw();
+        const intPart = scaled.div(Uint256Struct.SCALE);
+        const fracPart = scaled.mod(Uint256Struct.SCALE);
+
+        if (fracPart.isZero()) {
+            // No fractional digits
+            return intPart.toString(10);
+        } else {
+            // We have a fractional component
+            const fracStr = fracPart
+                .toString(10)
+                .padStart(Uint256Struct.DECIMALS, "0")
+                .replace(/0+$/, ""); // remove trailing zeros
+            return `${intPart}.${fracStr}`;
+        }
+    }
+
+    /**
+     * Convert the Uint256Struct to a JS number if safe; otherwise returns a BN.
+     * This "descale" by 10^18 first, so "123.456" comes back as ~123.456 in JS.
+     */
+    toNumber(): number | BN {
+        const scaled = this.raw(); // The big BN, e.g. 123.456 => 123456000000000000
+        const integer = scaled.div(Uint256Struct.SCALE); 
+        const remainder = scaled.mod(Uint256Struct.SCALE);
+    
+        // 1) If the integer part alone exceeds 2^53, return BN (or throw)
+        if (integer.bitLength() > 53) {
+            return new BN(this.toString()); 
+        }
+    
+        // 2) Convert integer part safely
+        const intNum = integer.toNumber(); // Guaranteed safe
+    
+        // 3) If no remainder, we have a whole number (like 123.000...)
+        if (remainder.isZero()) {
+            return intNum; 
+        }
+    
+        // 4) We have a fractional part. Instead of remainder.toNumber(),
+        //    convert remainder to decimal string, pad left to 18 digits,
+        //    then parse as float in '0.xxxxx' form.
+        const remainderStr = remainder.toString(10).padStart(Uint256Struct.DECIMALS, '0');
+        // e.g. "456000000000000000" => parseFloat("0.456000000000000000") => ~0.456
+    
+        // parseFloat of an 18-digit fraction is near the limit of JS float precision,
+        // but it won't throw an error. You will get a float ~0.456
+        const fracNum = parseFloat('0.' + remainderStr);
+    
+        // 5) Combine integer + fraction. If that sum is still <= 2^53,
+        //    we return it; otherwise, return BN. 
+        const result = intNum + fracNum;
+        
+        if (!Number.isFinite(result) || result > Number.MAX_SAFE_INTEGER) {
+            return new BN(this.toString());
+        }
+    
+        return result;
+    }
+
+    /**
+     * Add another Uint256Struct (both 18-decimal scaled).
+     */
+    add(other: Uint256Struct): Uint256Struct {
+        const sum = this.raw().add(other.raw());
+        return Uint256Struct.fromRaw(sum);
+    }
+
+    /**
+     * Subtract another Uint256Struct. Throws if result < 0 (underflow).
+     */
+    subtract(other: Uint256Struct): Uint256Struct {
+        const diff = this.raw().sub(other.raw());
+
+        if (diff.isNeg()) {
+            throw new Error("Underflow in subtract");
+        }
+
+        return Uint256Struct.fromRaw(diff);
+    }
+
+    /**
+     * Multiply this Uint256Struct by another, then scale back down by 10^18
+     * so final is still 18-decimals.
+     *
+     * So effectively: (a * b) / 10^18
+     */
+    multiply(other: Uint256Struct): Uint256Struct {
+        const product = this.raw().mul(other.raw()).div(Uint256Struct.SCALE);
+        return Uint256Struct.fromRaw(product);
+    }
+
+    /**
+     * Divide this Uint256Struct by another, scaling up the dividend by 10^18
+     * first so final is still 18 decimals.
+     *
+     * So effectively: (a * 10^18) / b
+     */
+    divide(divisor: Uint256Struct): Uint256Struct {
+        const b = divisor.raw();
+
+        if (b.isZero()) {
+            throw new Error('Division by zero');
+        }
+
+        const numerator = this.raw().mul(Uint256Struct.SCALE);
+        const quotient = numerator.div(b);
+        return Uint256Struct.fromRaw(quotient);
+    }
+
+    /**
+     * Modulo. Because both sides are scaled, we just do raw mod.
+     * The result is still scaled with 18 decimals.
+     */
+    modulo(divisor: Uint256Struct): Uint256Struct {
+        const b = divisor.raw();
+
+        if (b.isZero()) {
+            throw new Error('Division by zero in modulo');
+        }
+        
+        const remainder = this.raw().mod(b);
+        return Uint256Struct.fromRaw(remainder);
+    }
+
+    /**
+     * Compare: -1 if this < other, 0 if equal, +1 if this > other.
+     */
+    compare(other: Uint256Struct): -1 | 0 | 1 {
+        const aRaw = this.raw();
+        const bRaw = other.raw();
+        return aRaw.cmp(bRaw) as -1 | 0 | 1;
+    }
+
+    equals(other: Uint256Struct): boolean {
+        return this.compare(other) === 0;
+    }
+
+    greaterThan(other: Uint256Struct): boolean {
+        return this.compare(other) > 0;
+    }
+
+    lessThan(other: Uint256Struct): boolean {
+        return this.compare(other) < 0;
+    }
+
+    private static u128ToBN(u128: UInt128): BN {
+        // Access the raw bytes in LE
+        const bytes = u128.byteArray; 
+        return new BN(bytes, 'le');
     }
 }
 
