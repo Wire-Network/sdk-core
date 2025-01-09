@@ -5,8 +5,6 @@ export class StatsAPIv2 {
     constructor(private client: APIClient) { }
 
     async health(): Promise<HealthResponse> {
-        if (!this.client.hyperionProvider) throw new Error('HyperionAPI requires a provider');
-
         return this.client.call({
             method: 'GET',
             path: '/v2/health',
@@ -19,8 +17,6 @@ export class StatsAPIv2 {
      * @returns A promise that resolves to an ApiUsageResponse object containing API usage stats
      */
     async get_api_usage(): Promise<ApiUsageResponse> {
-        if (!this.client.hyperionProvider) throw new Error('HyperionAPI requires a provider');
-
         return this.client.call({
             method: 'GET',
             path: '/v2/stats/get_api_usage',
@@ -33,8 +29,6 @@ export class StatsAPIv2 {
      * @param params - Query parameters to filter the missed blocks data
      */
     async get_missed_blocks(params?: MissedBlocksParams): Promise<MissedBlocksResponse> {
-        if (!this.client.hyperionProvider) throw new Error('HyperionAPI requires a provider');
-
         return this.client.call({
             method: 'GET',
             path: '/v2/stats/get_missed_blocks',
@@ -49,8 +43,6 @@ export class StatsAPIv2 {
      * @returns A promise that resolves to a GetResourceUsageResponse object
      */
     async get_resource_usage(params: GetResourceUsageParams): Promise<GetResourceUsageResponse> {
-        if (!this.client.hyperionProvider) throw new Error('HyperionAPI requires a provider');
-
         return this.client.call({
             method: 'GET',
             path: '/v2/stats/get_resource_usage',

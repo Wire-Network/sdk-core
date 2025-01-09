@@ -10,8 +10,6 @@ export class HistoryAPIv2 {
      * @param block_hint - Optional block hint for performance
      */
     async get_transaction(id: string, block_hint?: number): Promise<GetTransactionResponse> {
-        if (!this.client.hyperionProvider) throw new Error('HyperionAPI requires a provider');
-
         return this.client.call({
             method: 'GET',
             path: '/v2/history/get_transaction',
@@ -26,8 +24,6 @@ export class HistoryAPIv2 {
      * @returns A promise that resolves to a GetActionsResponse object
      */
     async get_actions(params?: GetActionsParams): Promise<GetActionsResponse> {
-        if (!this.client.hyperionProvider) throw new Error('HyperionAPI requires a provider');
-
         return this.client.call({
             method: 'GET',
             path: `/v2/history/get_actions`,
@@ -42,8 +38,6 @@ export class HistoryAPIv2 {
      * @returns A promise that resolves to a GetCreatedAccountsResponse object containing an array of CreatedAccounts
      */
     async get_created_accounts(params: GetCreatedAccountsParams): Promise<GetCreatedAccountsResponse> {
-        if (!this.client.hyperionProvider) throw new Error('HyperionAPI requires a provider');
-
         return this.client.call({
             method: 'GET',
             path: `/v2/history/get_created_accounts`,

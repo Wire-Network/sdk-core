@@ -103,27 +103,23 @@ export class APIError extends Error {
 export class APIClient {
     static __className = 'APIClient';
 
-    readonly provider: APIProvider;
-    readonly hyperionProvider?: FetchProvider;
+    readonly v1Provider: APIProvider;
+    readonly v2Provider?: APIProvider;
 
     constructor(options: APIClientOptions) {
-        if (options.hyperionUrl && options.hyperionUrl != '') {
-            this.hyperionProvider = new FetchProvider(options.hyperionUrl, options);
-        }
-
-        if (options.provider) {
-            this.provider = options.provider;
-        } else if (options.url) {
-            this.provider = new FetchProvider(options.url, options);
-        } else {
-            throw new Error('Missing url or provider');
-        }
+        if (options.provider) this.v1Provider = options.provider;
+        else if (options.url) this.v1Provider = new FetchProvider(options.url, options);
+        else throw new Error('Missing v1 url or provider');
+        
+        if (options.hyperionUrl && options.hyperionUrl != '') 
+            this.v2Provider = new FetchProvider(options.hyperionUrl, options);
     }
 
     v1 = {
         chain: new ChainAPI(this),
         history: new HistoryAPI(this),
     };
+    
     v2 = {
         history: new HistoryAPIv2(this),
         state: new StateAPIv2(this),
@@ -158,16 +154,20 @@ export class APIClient {
         headers?: Record<string, string>;
         responseType?: ABISerializableType;
     }) {
-        const response = await this.provider.call(args);
+        const isV2 = args.path.startsWith('/v2/');
+        if (isV2 && !this.v2Provider) throw new Error('HyperionAPI requires a v2 provider');
+
+        const response = isV2 && this.v2Provider
+            ? await this.v2Provider.call(args)
+            : await this.v1Provider.call(args);
+
         const {json} = response;
 
-        if (Math.floor(response.status / 100) !== 2 || (json && typeof json.error === 'object')) {
+        if (Math.floor(response.status / 100) !== 2 || (json && typeof json.error === 'object')) 
             throw new APIError(args.path, response);
-        }
 
-        if (args.responseType) {
+        if (args.responseType) 
             return abiDecode({type: args.responseType, object: response.json});
-        }
 
         return response.json || response.text;
     }
