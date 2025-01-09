@@ -486,18 +486,21 @@ export class UInt128 extends Int {
     static isSigned = false;
 }
 
-export type UInt256Type = UInt256 | IntType;
-export class UInt256 extends Int {
-    static abiName = 'uint256';
-    static byteWidth = 32;
-    static isSigned = false;
+export type UInt256Type = UInt256 | UInt256Parts;
+export interface UInt256Parts {
+    low: number;
+    high: number;
 }
 
 // Struct to match the 256-bit integer in Wire C++ Core contract
-export class Uint256Struct {
-    public static readonly DECIMALS = 18;
-    public static readonly SCALE = new BN(10).pow(new BN(Uint256Struct.DECIMALS));
-    public static readonly MAX_UINT256 = new BN(1).shln(256).isubn(1);  // 2^256 - 1
+export class UInt256 {
+    static readonly abiName = 'uint256';
+    static readonly byteWidth = 32;
+    static readonly isSigned = false;
+
+    static readonly DECIMALS = 18;
+    static readonly SCALE = new BN(10).pow(new BN(UInt256.DECIMALS));
+    static readonly MAX_UINT256 = new BN(1).shln(256).isubn(1);  // 2^256 - 1
 
     low: UInt128;
     high: UInt128;
@@ -508,10 +511,10 @@ export class Uint256Struct {
     }
 
     /**
-     * Create a Uint256Struct from a number, string, or UInt128 instance.
+     * Create a UInt256 from a number, string, or UInt128 instance.
      * Interprets all values as 18-decimal fixed-point.
      */
-    static from(value: number | string | UInt128): Uint256Struct {
+    static from(value: number | string | UInt128): UInt256 {
         // Convert incoming to a decimal string
         const valueStr = value.toString();
         const [whole, frac = ""] = valueStr.split(".");
@@ -533,27 +536,27 @@ export class Uint256Struct {
         const lowBN = scaled.and(mask128);
         const highBN = scaled.shrn(128);
 
-        return new Uint256Struct(
+        return new UInt256(
             UInt128.from(lowBN), 
             UInt128.from(highBN),
         );
     }
 
     /**
-     * Rereate a Uint256Struct class from its low and high parts as numbers
-     * Useful when creating Uint256Struct from the value stored in a smart contract
+     * Rereate a UInt256 class from its low and high parts as js numbers
+     * Useful when creating UInt256 from the value stored in a smart contract
      */
-    static recreate(low: number, high: number){
-        return new Uint256Struct(UInt128.from(low), UInt128.from(high));
+    static recreate(value : UInt256Parts){
+        return new UInt256(UInt128.from(value.low), UInt128.from(value.high));
     }
 
     /**
-     * Construct a Uint256Struct from a raw 256-bit BN (no scaling).
+     * Construct a UInt256 from a raw 256-bit BN (no scaling).
      * Internal helper for add/sub/mul/div.
      */
-    static fromRaw(raw: BN): Uint256Struct {
+    static fromRaw(raw: BN): UInt256 {
         if (raw.isNeg()) {
-            throw new Error("Cannot represent negative values in Uint256Struct");
+            throw new Error("Cannot represent negative values in UInt256");
         }
 
         if (raw.gt(this.MAX_UINT256)) {
@@ -564,7 +567,7 @@ export class Uint256Struct {
         const lowBN = raw.and(mask128);
         const highBN = raw.shrn(128);
 
-        return new Uint256Struct(
+        return new UInt256(
             UInt128.from(lowBN),
             UInt128.from(highBN),
         );
@@ -575,19 +578,19 @@ export class Uint256Struct {
      * _already-scaled_ 10^18 factor.
      */
     raw(): BN {
-        const lowBN = Uint256Struct.u128ToBN(this.low);
-        const highBN = Uint256Struct.u128ToBN(this.high).shln(128);
+        const lowBN = UInt256.u128ToBN(this.low);
+        const highBN = UInt256.u128ToBN(this.high).shln(128);
         return highBN.add(lowBN);
     }
 
     /**
-     * Convert the Uint256Struct to a human-readable string,
+     * Convert the UInt256 to a human-readable string,
      * e.g. "123.456" for internal BN "123456000000000000000".
      */
     toString(): string {
         const scaled = this.raw();
-        const intPart = scaled.div(Uint256Struct.SCALE);
-        const fracPart = scaled.mod(Uint256Struct.SCALE);
+        const intPart = scaled.div(UInt256.SCALE);
+        const fracPart = scaled.mod(UInt256.SCALE);
 
         if (fracPart.isZero()) {
             // No fractional digits
@@ -596,20 +599,20 @@ export class Uint256Struct {
             // We have a fractional component
             const fracStr = fracPart
                 .toString(10)
-                .padStart(Uint256Struct.DECIMALS, "0")
+                .padStart(UInt256.DECIMALS, "0")
                 .replace(/0+$/, ""); // remove trailing zeros
             return `${intPart}.${fracStr}`;
         }
     }
 
     /**
-     * Convert the Uint256Struct to a JS number if safe; otherwise returns a BN.
+     * Convert the UInt256 to a JS number if safe; otherwise returns a BN.
      * This "descale" by 10^18 first, so "123.456" comes back as ~123.456 in JS.
      */
     toNumber(): number | BN {
         const scaled = this.raw(); // The big BN, e.g. 123.456 => 123456000000000000
-        const integer = scaled.div(Uint256Struct.SCALE); 
-        const remainder = scaled.mod(Uint256Struct.SCALE);
+        const integer = scaled.div(UInt256.SCALE); 
+        const remainder = scaled.mod(UInt256.SCALE);
     
         // 1) If the integer part alone exceeds 2^53, return BN (or throw)
         if (integer.bitLength() > 53) {
@@ -627,7 +630,7 @@ export class Uint256Struct {
         // 4) We have a fractional part. Instead of remainder.toNumber(),
         //    convert remainder to decimal string, pad left to 18 digits,
         //    then parse as float in '0.xxxxx' form.
-        const remainderStr = remainder.toString(10).padStart(Uint256Struct.DECIMALS, '0');
+        const remainderStr = remainder.toString(10).padStart(UInt256.DECIMALS, '0');
         // e.g. "456000000000000000" => parseFloat("0.456000000000000000") => ~0.456
     
         // parseFloat of an 18-digit fraction is near the limit of JS float precision,
@@ -646,60 +649,60 @@ export class Uint256Struct {
     }
 
     /**
-     * Add another Uint256Struct (both 18-decimal scaled).
+     * Add another UInt256 (both 18-decimal scaled).
      */
-    add(other: Uint256Struct): Uint256Struct {
+    add(other: UInt256): UInt256 {
         const sum = this.raw().add(other.raw());
-        return Uint256Struct.fromRaw(sum);
+        return UInt256.fromRaw(sum);
     }
 
     /**
-     * Subtract another Uint256Struct. Throws if result < 0 (underflow).
+     * Subtract another UInt256. Throws if result < 0 (underflow).
      */
-    subtract(other: Uint256Struct): Uint256Struct {
+    subtract(other: UInt256): UInt256 {
         const diff = this.raw().sub(other.raw());
 
         if (diff.isNeg()) {
             throw new Error("Underflow in subtract");
         }
 
-        return Uint256Struct.fromRaw(diff);
+        return UInt256.fromRaw(diff);
     }
 
     /**
-     * Multiply this Uint256Struct by another, then scale back down by 10^18
+     * Multiply this UInt256 by another, then scale back down by 10^18
      * so final is still 18-decimals.
      *
      * So effectively: (a * b) / 10^18
      */
-    multiply(other: Uint256Struct): Uint256Struct {
-        const product = this.raw().mul(other.raw()).div(Uint256Struct.SCALE);
-        return Uint256Struct.fromRaw(product);
+    multiply(other: UInt256): UInt256 {
+        const product = this.raw().mul(other.raw()).div(UInt256.SCALE);
+        return UInt256.fromRaw(product);
     }
 
     /**
-     * Divide this Uint256Struct by another, scaling up the dividend by 10^18
+     * Divide this UInt256 by another, scaling up the dividend by 10^18
      * first so final is still 18 decimals.
      *
      * So effectively: (a * 10^18) / b
      */
-    divide(divisor: Uint256Struct): Uint256Struct {
+    divide(divisor: UInt256): UInt256 {
         const b = divisor.raw();
 
         if (b.isZero()) {
             throw new Error('Division by zero');
         }
 
-        const numerator = this.raw().mul(Uint256Struct.SCALE);
+        const numerator = this.raw().mul(UInt256.SCALE);
         const quotient = numerator.div(b);
-        return Uint256Struct.fromRaw(quotient);
+        return UInt256.fromRaw(quotient);
     }
 
     /**
      * Modulo. Because both sides are scaled, we just do raw mod.
      * The result is still scaled with 18 decimals.
      */
-    modulo(divisor: Uint256Struct): Uint256Struct {
+    modulo(divisor: UInt256): UInt256 {
         const b = divisor.raw();
 
         if (b.isZero()) {
@@ -707,27 +710,27 @@ export class Uint256Struct {
         }
         
         const remainder = this.raw().mod(b);
-        return Uint256Struct.fromRaw(remainder);
+        return UInt256.fromRaw(remainder);
     }
 
     /**
      * Compare: -1 if this < other, 0 if equal, +1 if this > other.
      */
-    compare(other: Uint256Struct): -1 | 0 | 1 {
+    compare(other: UInt256): -1 | 0 | 1 {
         const aRaw = this.raw();
         const bRaw = other.raw();
         return aRaw.cmp(bRaw) as -1 | 0 | 1;
     }
 
-    equals(other: Uint256Struct): boolean {
+    equals(other: UInt256): boolean {
         return this.compare(other) === 0;
     }
 
-    greaterThan(other: Uint256Struct): boolean {
+    greaterThan(other: UInt256): boolean {
         return this.compare(other) > 0;
     }
 
-    lessThan(other: Uint256Struct): boolean {
+    lessThan(other: UInt256): boolean {
         return this.compare(other) < 0;
     }
 
