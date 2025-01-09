@@ -15,8 +15,7 @@ export class StateAPIv2 {
         return this.client.call({
             method: 'GET',
             path: '/v2/state/get_account',
-            params: { account, limit, skip },
-            responseType: GetAccountResponse,
+            params: { account, limit, skip }
         });
     }
 }

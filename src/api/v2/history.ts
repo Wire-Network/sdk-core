@@ -13,8 +13,7 @@ export class HistoryAPIv2 {
         return this.client.call({
             method: 'GET',
             path: '/v2/history/get_transaction',
-            params: { id, block_hint },
-            responseType: GetTransactionResponse,
+            params: { id, block_hint }
         });
     }
 
@@ -27,8 +26,7 @@ export class HistoryAPIv2 {
         return this.client.call({
             method: 'GET',
             path: `/v2/history/get_actions`,
-            params: params as any || {},
-            responseType: GetActionsResponse,
+            params: params || {}
         });
     }
 
@@ -41,8 +39,7 @@ export class HistoryAPIv2 {
         return this.client.call({
             method: 'GET',
             path: `/v2/history/get_created_accounts`,
-            params: params as any || {},
-            responseType: GetCreatedAccountsResponse,
+            params
         });
     }
 }

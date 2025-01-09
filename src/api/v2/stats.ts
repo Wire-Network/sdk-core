@@ -7,8 +7,7 @@ export class StatsAPIv2 {
     async health(): Promise<HealthResponse> {
         return this.client.call({
             method: 'GET',
-            path: '/v2/health',
-            responseType: HealthResponse,
+            path: '/v2/health'
         });
     }
 
@@ -19,8 +18,7 @@ export class StatsAPIv2 {
     async get_api_usage(): Promise<ApiUsageResponse> {
         return this.client.call({
             method: 'GET',
-            path: '/v2/stats/get_api_usage',
-            responseType: ApiUsageResponse,
+            path: '/v2/stats/get_api_usage'
         });
     }
 
@@ -32,8 +30,7 @@ export class StatsAPIv2 {
         return this.client.call({
             method: 'GET',
             path: '/v2/stats/get_missed_blocks',
-            params,
-            responseType: MissedBlocksResponse,
+            params: params || {}
         });
     }
 
@@ -46,8 +43,7 @@ export class StatsAPIv2 {
         return this.client.call({
             method: 'GET',
             path: '/v2/stats/get_resource_usage',
-            params,
-            responseType: GetResourceUsageResponse,
+            params
         });
     }
 }
