@@ -210,6 +210,24 @@ suite('Uint256Struct', function () {
         assertUint256(Uint256Struct.from('0.000000000000000001'), '0.000000000000000001');
     });
 
+    test('recreate', function () {
+        // Simple test values for low and high
+        const low = 123;
+        const high = 456;
+
+        // Recreate struct from low, high
+        const recreated = Uint256Struct.recreate(low, high);
+
+        // Check that the internal UInt128 values match what we passed in
+        // (Number(...) uses your UInt128.toNumber() or BN logic)
+        assert.equal(Number(recreated.low), low, 'Low part should match');
+        assert.equal(Number(recreated.high), high, 'High part should match');
+
+        // Confirm the full 256-bit value (raw) matches expected:
+        const expectedBN = new BN(high).shln(128).add(new BN(low));
+        assert.equal(recreated.raw().toString(), expectedBN.toString());
+    });
+
     test('toString', function () {
         const uint256 = Uint256Struct.from('1234567890123456789.987654321');
         assert.equal(uint256.toString(), '1234567890123456789.987654321');

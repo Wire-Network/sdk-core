@@ -540,6 +540,14 @@ export class Uint256Struct {
     }
 
     /**
+     * Rereate a Uint256Struct class from its low and high parts as numbers
+     * Useful when creating Uint256Struct from the value stored in a smart contract
+     */
+    static recreate(low: number, high: number){
+        return new Uint256Struct(UInt128.from(low), UInt128.from(high));
+    }
+
+    /**
      * Construct a Uint256Struct from a raw 256-bit BN (no scaling).
      * Internal helper for add/sub/mul/div.
      */
@@ -629,7 +637,7 @@ export class Uint256Struct {
         // 5) Combine integer + fraction. If that sum is still <= 2^53,
         //    we return it; otherwise, return BN. 
         const result = intNum + fracNum;
-        
+
         if (!Number.isFinite(result) || result > Number.MAX_SAFE_INTEGER) {
             return new BN(this.toString());
         }
