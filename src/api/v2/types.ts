@@ -1,6 +1,4 @@
-import { AnyAction, Checksum256Type, NameType, Signature, Struct } from '../../chain';
-
-
+import { AnyAction, NameType, Signature, Struct } from '../../chain';
 export interface HyperionBaseResponse {
     query_time_ms: number;
     last_indexed_block: number;

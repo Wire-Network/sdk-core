@@ -1,26 +1,23 @@
 import { APIClient } from "../client";
-import { FetchProvider } from "../provider";
 import { GetActionsParams, GetActionsResponse, GetCreatedAccountsParams, GetCreatedAccountsResponse, GetTransactionResponse } from "./types";
-   
-export class HistoryAPIv2 {
-    get provider(): FetchProvider | undefined { return this.api.hyperionProvider }
 
-    constructor(private api: APIClient) {}
-   
+export class HistoryAPIv2 {
+    constructor(private client: APIClient) { }
+
     /**
      * Fetch a transaction by ID
      * @param id - Transaction ID
      * @param block_hint - Optional block hint for performance
      */
     async get_transaction(id: string, block_hint?: number): Promise<GetTransactionResponse> {
-        if (!this.provider) throw new Error('HyperionAPI requires a provider');
-        
-        const response = await this.provider.call({
+        if (!this.client.hyperionProvider) throw new Error('HyperionAPI requires a provider');
+
+        return this.client.call({
+            method: 'GET',
             path: '/v2/history/get_transaction',
             params: { id, block_hint },
-            method: 'GET',
+            responseType: GetTransactionResponse,
         });
-        return response.json as GetTransactionResponse;
     }
 
     /**
@@ -29,15 +26,14 @@ export class HistoryAPIv2 {
      * @returns A promise that resolves to a GetActionsResponse object
      */
     async get_actions(params?: GetActionsParams): Promise<GetActionsResponse> {
-        if (!this.provider) throw new Error('HyperionAPI requires a provider');
+        if (!this.client.hyperionProvider) throw new Error('HyperionAPI requires a provider');
 
-        const response = await this.provider.call({
+        return this.client.call({
+            method: 'GET',
             path: `/v2/history/get_actions`,
             params: params as any || {},
-            method: 'GET',
+            responseType: GetActionsResponse,
         });
-
-        return response.json as GetActionsResponse;
     }
 
     /**
@@ -46,14 +42,13 @@ export class HistoryAPIv2 {
      * @returns A promise that resolves to a GetCreatedAccountsResponse object containing an array of CreatedAccounts
      */
     async get_created_accounts(params: GetCreatedAccountsParams): Promise<GetCreatedAccountsResponse> {
-        if (!this.provider) throw new Error('HyperionAPI requires a provider');
+        if (!this.client.hyperionProvider) throw new Error('HyperionAPI requires a provider');
 
-        const response = await this.provider.call({
+        return this.client.call({
+            method: 'GET',
             path: `/v2/history/get_created_accounts`,
             params: params as any || {},
-            method: 'GET',
+            responseType: GetCreatedAccountsResponse,
         });
-
-        return response.json as GetCreatedAccountsResponse;
     }
 }

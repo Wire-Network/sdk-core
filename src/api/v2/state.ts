@@ -1,12 +1,9 @@
 import { APIClient } from "../client";
-import { FetchProvider } from "../provider";
 import { GetAccountResponse } from "./types";
 
 export class StateAPIv2 {
-    get provider(): FetchProvider | undefined { return this.api.hyperionProvider }
+    constructor(private client: APIClient) { }
 
-    constructor(private api: APIClient) {}
-    
     /**
      * Fetch account details by account name
      * @param account - The name of the account to fetch
@@ -15,15 +12,13 @@ export class StateAPIv2 {
      * @returns A promise that resolves to a GetAccountResponse object
      */
     async get_account(account: string, limit?: number, skip?: number): Promise<GetAccountResponse> {
-        if (!this.provider) throw new Error('HyperionAPI requires a provider');
+        if (!this.client.hyperionProvider) throw new Error('HyperionAPI requires a provider');
 
-        const response = await this.provider.call({
+        return this.client.call({
+            method: 'GET',
             path: '/v2/state/get_account',
             params: { account, limit, skip },
-            method: 'GET',
+            responseType: GetAccountResponse,
         });
-
-        return response.json as GetAccountResponse;
     }
-
 }

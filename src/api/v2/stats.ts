@@ -1,21 +1,17 @@
 import { APIClient } from '../client';
-import { FetchProvider } from '../provider';
 import { ApiUsageResponse, GetResourceUsageParams, GetResourceUsageResponse, HealthResponse, MissedBlocksParams, MissedBlocksResponse } from './types';
 
 export class StatsAPIv2 {
-    get provider(): FetchProvider | undefined { return this.api.hyperionProvider }
-
-    constructor(private api: APIClient) {}
+    constructor(private client: APIClient) { }
 
     async health(): Promise<HealthResponse> {
-        if (!this.provider) throw new Error('HyperionAPI requires a provider');
+        if (!this.client.hyperionProvider) throw new Error('HyperionAPI requires a provider');
 
-        const response = await this.provider.call({
-            path: '/v2/health',
+        return this.client.call({
             method: 'GET',
+            path: '/v2/health',
+            responseType: HealthResponse,
         });
-
-        return response.json as HealthResponse;
     }
 
     /**
@@ -23,14 +19,13 @@ export class StatsAPIv2 {
      * @returns A promise that resolves to an ApiUsageResponse object containing API usage stats
      */
     async get_api_usage(): Promise<ApiUsageResponse> {
-        if (!this.provider) throw new Error('HyperionAPI requires a provider');
+        if (!this.client.hyperionProvider) throw new Error('HyperionAPI requires a provider');
 
-        const response = await this.provider.call({
-            path: '/v2/stats/get_api_usage',
+        return this.client.call({
             method: 'GET',
+            path: '/v2/stats/get_api_usage',
+            responseType: ApiUsageResponse,
         });
-
-        return response.json as ApiUsageResponse;
     }
 
     /**
@@ -38,15 +33,14 @@ export class StatsAPIv2 {
      * @param params - Query parameters to filter the missed blocks data
      */
     async get_missed_blocks(params?: MissedBlocksParams): Promise<MissedBlocksResponse> {
-        if (!this.provider) throw new Error('HyperionAPI requires a provider');
+        if (!this.client.hyperionProvider) throw new Error('HyperionAPI requires a provider');
 
-        const response = await this.provider.call({
-            path: '/v2/stats/get_missed_blocks',
-            params: params as any || {},
+        return this.client.call({
             method: 'GET',
+            path: '/v2/stats/get_missed_blocks',
+            params,
+            responseType: MissedBlocksResponse,
         });
-
-        return response.json as MissedBlocksResponse;
     }
 
     /**
@@ -55,14 +49,13 @@ export class StatsAPIv2 {
      * @returns A promise that resolves to a GetResourceUsageResponse object
      */
     async get_resource_usage(params: GetResourceUsageParams): Promise<GetResourceUsageResponse> {
-        if (!this.provider) throw new Error('HyperionAPI requires a provider');
+        if (!this.client.hyperionProvider) throw new Error('HyperionAPI requires a provider');
 
-        const response = await this.provider.call({
-            path: '/v2/stats/get_resource_usage',
-            params: params as any,
+        return this.client.call({
             method: 'GET',
+            path: '/v2/stats/get_resource_usage',
+            params,
+            responseType: GetResourceUsageResponse,
         });
-
-        return response.json as GetResourceUsageResponse;
     }
 }

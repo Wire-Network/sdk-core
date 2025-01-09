@@ -503,18 +503,23 @@ export class Uint256Struct {
         this.high = high;
     }
 
-    static fromNumber(value: number | string): Uint256Struct {
-        // Convert the input to a UInt256 (a 256-bit integer)
-        const u256 = UInt256.from(value);
+    static from(value: number | string | UInt128): Uint256Struct {
+        // Convert the input to a scaled BN (equivalent to parseUnits(value, 18))
+        const [whole, fractional = ""] = value.toString().split(".");
+        const decimals = 18;
+        const wholePart = new BN(whole).mul(new BN(10).pow(new BN(decimals)));
+        const fractionalPart = new BN(fractional.padEnd(decimals, "0").slice(0, decimals));
+        const scaled = wholePart.add(fractionalPart);
 
-        // Extract low 128 bits
-        // 128 bits = 16 bytes, so we mask with 2^(128) - 1
-        const mask = new UInt128(new BN('ffffffffffffffffffffffffffffffff', 16));
-        const lowBN = u256.value.and(mask.value); 
-        const highBN = u256.value.shrn(128);
+        // Extract the low and high 128 bits
+        const mask = new BN("ffffffffffffffffffffffffffffffff", 16); // 128-bit mask
+        const lowBN = scaled.and(mask); // Low 128 bits
+        const highBN = scaled.shrn(128); // High 128 bits
 
+        // Convert to UInt128 instances
         const low = UInt128.from(lowBN);
         const high = UInt128.from(highBN);
+
         return new Uint256Struct(low, high);
     }
 }
