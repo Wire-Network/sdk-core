@@ -42,6 +42,10 @@ export interface AnyAction extends ActionBase {
     data: BytesType | ABISerializableObject | Record<string, any> | any ;
 }
 
+export type ActionTypedData<A> = Omit<AnyAction, 'data'> & {
+    data: A;
+};
+
 export type ActionType = Action | ActionFields;
 
 @Struct.type('action')
