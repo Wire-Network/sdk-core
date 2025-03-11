@@ -413,6 +413,11 @@ export class GetAccountResponse extends Struct implements HyperionBaseResponse {
     @Struct.field('number') declare total_actions: number;
     @Struct.field(Action, { array: true }) declare actions: Action[];
 }
+
+@Struct.type('get_key_accounts_response')
+export class GetKeyAccountsResponse extends Struct {
+    @Struct.field('string[]') declare account_names: string[];
+}
 export interface MissedBlocksParams {
     producer?: NameType;
     after?: string;
