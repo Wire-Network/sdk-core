@@ -16,6 +16,7 @@ import {
     Checksum256,
     Checksum256Type,
     Checksum512,
+    getCurve,
     KeyType,
     PublicKey,
     Signature,
@@ -172,6 +173,11 @@ export class PrivateKey {
         }
 
         return Base58.encodeCheck(Bytes.from([0x80]).appending(this.data));
+    }
+
+    toElliptic(): EC.KeyPair {
+        const ec = getCurve(this.type);
+        return ec.keyFromPrivate(this.data.array);
     }
 
     /**
