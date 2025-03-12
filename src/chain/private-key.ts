@@ -6,6 +6,10 @@ import {sharedSecret} from '../crypto/shared-secret';
 import {sign} from '../crypto/sign';
 import {generate} from '../crypto/generate';
 
+import {ec as EC} from 'elliptic';
+
+import {ethers} from 'ethers';
+
 import {
     Bytes,
     BytesType,
@@ -66,7 +70,42 @@ export class PrivateKey {
             throw error;
         }
     }
+    /**
+     * Create PrivateKey object from elliptic key pair.
+     * @param privKey - Elliptic key pair.
+     * @param keyType - Key type.
+     * @param ec - Elliptic curve.
+     * @returns PrivateKey object.
+     */
+    static fromElliptic(privKey: EC.KeyPair, keyType: KeyType, ec?: EC): PrivateKey {
+        if (!ec) {
+            ec = keyType === KeyType.K1 ? new EC('secp256k1') : new EC('p256');
+        }
 
+        return new PrivateKey(
+            keyType,
+            new Bytes(privKey.getPrivate().toArrayLike(Buffer, 'be', 32))
+        );
+    }
+
+    /**
+     * Create PrivateKey object from mnemonic phrase.
+     * @param phrase - Mnemonic phrase.
+     * @returns PrivateKey object.
+     */
+    static fromMnemonic(phrase: Array<string> | string) {
+        const ec = new EC('secp256k1');
+        const p = Array.isArray(phrase) ? phrase.join(' ') : phrase;
+        const wallet = ethers.Wallet.fromMnemonic(p);
+        const KP = ec.keyFromPrivate(Buffer.from(wallet.privateKey.slice(2), 'hex'));
+        const PK = PrivateKey.fromElliptic(KP, KeyType.K1);
+
+        return {
+            username: '',
+            address: wallet.address,
+            private_key: PK,
+        };
+    }
     /**
      * Generate new PrivateKey.
      * @throws If a secure random source isn't available.
