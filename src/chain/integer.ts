@@ -578,7 +578,7 @@ export class UInt256 {
      * Useful when reading values from smart contracts. 
      * Like: balanceOf and allowance
      */
-    fromBigNumber(value: ethers.BigNumber): UInt256 {
+    static fromBigNumber(value: ethers.BigNumber): UInt256 {
         const bn = new BN(value._hex.slice(2), 16)
         return UInt256.fromRaw(bn);
     }
