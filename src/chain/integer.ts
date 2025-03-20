@@ -1,5 +1,5 @@
 import BN from 'bn.js';
-
+import {ethers} from 'ethers';
 import {ABISerializableObject} from '../serializer/serializable';
 import {ABIDecoder} from '../serializer/decoder';
 import {ABIEncoder} from '../serializer/encoder';
@@ -571,6 +571,16 @@ export class UInt256 {
             UInt128.from(lowBN),
             UInt128.from(highBN),
         );
+    }
+
+    /**
+     * Helper to convert from ethers.BigNumber to our UInt256 type.
+     * Useful when reading values from smart contracts. 
+     * Like: balanceOf and allowance
+     */
+    fromBigNumber(value: ethers.BigNumber): UInt256 {
+        const bn = new BN(value._hex.slice(2), 16)
+        return UInt256.fromRaw(bn);
     }
 
     /**
