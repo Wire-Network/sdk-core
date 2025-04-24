@@ -36,12 +36,12 @@ import {
     Weight,
 } from '../../chain';
 
-import {ABISerializableObject, ABISerializableType, Serializer, } from '../../serializer';
+import { ABISerializableObject, ABISerializableType, Serializer, } from '../../serializer';
 
 @Struct.type('account_linked_action')
 export class AccountLinkedAction extends Struct {
     @Struct.field('name') declare account: Name;
-    @Struct.field('name', {optional: true}) declare action: Name;
+    @Struct.field('name', { optional: true }) declare action: Name;
 }
 
 @Struct.type('account_permission')
@@ -49,7 +49,7 @@ export class AccountPermission extends Struct {
     @Struct.field('name') declare perm_name: Name;
     @Struct.field('name') declare parent: Name;
     @Struct.field(Authority) declare required_auth: Authority;
-    @Struct.field(AccountLinkedAction, {optional: true, array: true})
+    @Struct.field(AccountLinkedAction, { optional: true, array: true })
     declare linked_actions: AccountLinkedAction[];
 }
 
@@ -58,9 +58,9 @@ export class AccountResourceLimit extends Struct {
     @Struct.field('int64') declare used: Int64;
     @Struct.field('int64') declare available: Int64;
     @Struct.field('int64') declare max: Int64;
-    @Struct.field('time_point', {optional: true})
+    @Struct.field('time_point', { optional: true })
     declare last_usage_update_time: TimePoint;
-    @Struct.field('int64', {optional: true}) declare current_used: Int64;
+    @Struct.field('int64', { optional: true }) declare current_used: Int64;
 }
 
 @Struct.type('account_total_resources')
@@ -91,12 +91,12 @@ export class AccountRefundRequest extends Struct {
 export class AccountVoterInfo extends Struct {
     @Struct.field('name') declare owner: Name;
     @Struct.field('name') declare proxy: Name;
-    @Struct.field('name', {array: true}) declare producers: Name[];
-    @Struct.field('int64', {optional: true}) staked?: Int64;
+    @Struct.field('name', { array: true }) declare producers: Name[];
+    @Struct.field('int64', { optional: true }) staked?: Int64;
     @Struct.field('float64') declare last_vote_weight: Float64;
     @Struct.field('float64') declare proxied_vote_weight: Float64;
     @Struct.field('bool') declare is_proxy: boolean;
-    @Struct.field('uint32', {optional: true}) flags1?: UInt32;
+    @Struct.field('uint32', { optional: true }) flags1?: UInt32;
     @Struct.field('uint32') reserved2!: UInt32;
     @Struct.field('string') reserved3!: string;
 }
@@ -104,11 +104,11 @@ export class AccountVoterInfo extends Struct {
 @Struct.type('account_rex_info_maturities')
 export class AccountRexInfoMaturities extends Struct {
     /** Expected results from after EOSIO.Contracts v1.9.0 */
-    @Struct.field('time_point', {optional: true}) key?: TimePoint;
-    @Struct.field('int64', {optional: true}) value?: Int64;
+    @Struct.field('time_point', { optional: true }) key?: TimePoint;
+    @Struct.field('int64', { optional: true }) value?: Int64;
     /** Expected results from before EOSIO.Contracts v1.9.0 */
-    @Struct.field('time_point', {optional: true}) first?: TimePoint;
-    @Struct.field('int64', {optional: true}) second?: Int64;
+    @Struct.field('time_point', { optional: true }) first?: TimePoint;
+    @Struct.field('int64', { optional: true }) second?: Int64;
 }
 
 @Struct.type('account_rex_info')
@@ -118,7 +118,7 @@ export class AccountRexInfo extends Struct {
     @Struct.field('asset') declare vote_stake: Asset;
     @Struct.field('asset') declare rex_balance: Asset;
     @Struct.field('int64') declare matured_rex: Int64;
-    @Struct.field(AccountRexInfoMaturities, {array: true})
+    @Struct.field(AccountRexInfoMaturities, { array: true })
     declare rex_maturities: AccountRexInfoMaturities[];
 }
 
@@ -156,20 +156,20 @@ export class AccountObject extends Struct {
     @Struct.field('int64') declare cpu_weight: Int64;
     @Struct.field(AccountResourceLimit) declare net_limit: AccountResourceLimit;
     @Struct.field(AccountResourceLimit) declare cpu_limit: AccountResourceLimit;
-    @Struct.field(AccountResourceLimit, {optional: true})
+    @Struct.field(AccountResourceLimit, { optional: true })
     declare subjective_cpu_bill_limit: AccountResourceLimit;
     @Struct.field('uint64') declare ram_usage: UInt64;
-    @Struct.field(AccountPermission, {array: true})
+    @Struct.field(AccountPermission, { array: true })
     declare permissions: AccountPermission[];
-    @Struct.field(AccountTotalResources, {optional: true})
+    @Struct.field(AccountTotalResources, { optional: true })
     declare total_resources: AccountTotalResources;
-    @Struct.field(AccountSelfDelegatedBandwidth, {optional: true})
+    @Struct.field(AccountSelfDelegatedBandwidth, { optional: true })
     self_delegated_bandwidth?: AccountSelfDelegatedBandwidth;
-    @Struct.field(AccountRefundRequest, {optional: true})
+    @Struct.field(AccountRefundRequest, { optional: true })
     refund_request?: AccountRefundRequest;
-    @Struct.field(AccountVoterInfo, {optional: true})
+    @Struct.field(AccountVoterInfo, { optional: true })
     voter_info?: AccountVoterInfo;
-    @Struct.field(AccountRexInfo, {optional: true}) rex_info?: AccountRexInfo;
+    @Struct.field(AccountRexInfo, { optional: true }) rex_info?: AccountRexInfo;
 
     getPermission(permission: NameType): AccountPermission {
         const name = Name.from(permission);
@@ -187,9 +187,9 @@ export class AccountObject extends Struct {
 export class AccountByAuthorizersRow extends Struct {
     @Struct.field(Name) declare account_name: Name;
     @Struct.field(Name) declare permission_name: Name;
-    @Struct.field(PublicKey, {optional: true})
+    @Struct.field(PublicKey, { optional: true })
     declare authorizing_key: PublicKey;
-    @Struct.field(PermissionLevel, {optional: true})
+    @Struct.field(PermissionLevel, { optional: true })
     declare authorizing_account: PermissionLevel;
     @Struct.field(Weight) declare weight: Weight;
     @Struct.field(UInt32) declare threshold: UInt32;
@@ -197,7 +197,7 @@ export class AccountByAuthorizersRow extends Struct {
 
 @Struct.type('account_by_authorizers')
 export class AccountsByAuthorizers extends Struct {
-    @Struct.field(AccountByAuthorizersRow, {array: true})
+    @Struct.field(AccountByAuthorizersRow, { array: true })
     declare accounts: AccountByAuthorizersRow[];
 }
 
@@ -210,7 +210,7 @@ export class NewProducersEntry extends Struct {
 @Struct.type('new_producers')
 export class NewProducers extends Struct {
     @Struct.field('uint32') declare version: UInt32;
-    @Struct.field(NewProducersEntry, {array: true})
+    @Struct.field(NewProducersEntry, { array: true })
     declare producers: NewProducersEntry;
 }
 
@@ -245,14 +245,14 @@ export class TrxVariant implements ABISerializableObject {
         return new this(id, extra);
     }
 
-    constructor(readonly id: Checksum256, readonly extra: Record<string, any>) {}
+    constructor(readonly id: Checksum256, readonly extra: Record<string, any>) { }
 
     get transaction(): Transaction | undefined {
         if (this.extra.packed_trx) {
             switch (this.extra.compression) {
                 case 'zlib': {
                     const inflated = pako.inflate(Bytes.from(this.extra.packed_trx, 'hex').array);
-                    return Serializer.decode({data: inflated, type: Transaction});
+                    return Serializer.decode({ data: inflated, type: Transaction });
                 }
 
                 case 'none': {
@@ -285,11 +285,25 @@ export class TrxVariant implements ABISerializableObject {
 }
 
 @Struct.type('get_block_response_receipt')
-export class GetBlockResponseTransactionReceipt extends TransactionReceipt {
-    @Struct.field(TrxVariant) declare trx: TrxVariant;
+export class GetBlockResponseTransactionReceipt extends Struct {
+    /**
+     * The RPC is returning trx as a raw typed‐array (serialized in JSON
+     * as `{ "0": ..., "1": ..., … }`), not as the Variant struct.
+     * So first capture it as plain bytes…
+     */
+    @Struct.field('bytes')
+    declare trx: Bytes;
+
+    /**
+     * …then lazily decode into your TrxVariant when you actually need
+     * the structured fields (`id`, `signatures`, etc).
+     */
+    get decodedTrx(): TrxVariant {
+        return Serializer.decode({ data: this.trx, type: TrxVariant });
+    }
 
     get id(): Checksum256 {
-        return this.trx.id;
+        return this.decodedTrx.id;
     }
 }
 
@@ -302,14 +316,14 @@ export class GetBlockResponse extends Struct {
     @Struct.field('checksum256') declare transaction_mroot: Checksum256;
     @Struct.field('checksum256') declare action_mroot: Checksum256;
     @Struct.field('uint32') declare schedule_version: UInt32;
-    @Struct.field(NewProducers, {optional: true}) new_producers?: NewProducers;
-    @Struct.field('header_extension', {optional: true})
+    @Struct.field(NewProducers, { optional: true }) new_producers?: NewProducers;
+    @Struct.field('header_extension', { optional: true })
     header_extensions?: HeaderExtension[];
-    @Struct.field('any', {optional: true}) new_protocol_features?: any;
+    @Struct.field('any', { optional: true }) new_protocol_features?: any;
     @Struct.field('signature') declare producer_signature: Signature;
-    @Struct.field(GetBlockResponseTransactionReceipt, {array: true})
+    @Struct.field(GetBlockResponseTransactionReceipt, { array: true })
     declare transactions: GetBlockResponseTransactionReceipt[];
-    @Struct.field('block_extension', {optional: true})
+    @Struct.field('block_extension', { optional: true })
     declare block_extensions: BlockExtension[];
     @Struct.field(BlockId) declare id: BlockId;
     @Struct.field('uint32') declare block_num: UInt32;
@@ -348,7 +362,7 @@ export class ActiveScheduleProducer extends Struct {
 @Struct.type('active_schedule')
 export class ActiveSchedule extends Struct {
     @Struct.field('uint32') declare version: UInt32;
-    @Struct.field(ActiveScheduleProducer, {array: true})
+    @Struct.field(ActiveScheduleProducer, { array: true })
     declare producers: ActiveScheduleProducer[];
 }
 
@@ -364,7 +378,7 @@ export class BlockStateHeader extends Struct {
     // @Struct.field(HeaderExtension, {array: true, optional: true})
     // header_extensions?: HeaderExtension[];
     @Struct.field('any', { array: true, optional: true })
-    declare header_extensions?: any[]; 
+    declare header_extensions?: any[];
     @Struct.field('signature') declare producer_signature: Signature;
 }
 
@@ -441,7 +455,7 @@ export interface PushTransactionResponse {
         id: string;
         block_num: number;
         block_time: string;
-        receipt: {status: string; cpu_usage_us: number; net_usage_words: number};
+        receipt: { status: string; cpu_usage_us: number; net_usage_words: number };
         elapsed: number;
         net_usage: number;
         scheduled: boolean;
@@ -477,7 +491,7 @@ export interface SendTransactionResponse {
         id: string;
         block_num: number;
         block_time: string;
-        receipt: {status: string; cpu_usage_us: number; net_usage_words: number};
+        receipt: { status: string; cpu_usage_us: number; net_usage_words: number };
         elapsed: number;
         except?: SendTransactionResponseException;
         net_usage: number;
@@ -499,7 +513,7 @@ export interface SendTransaction2Response {
         id: string;
         block_num: number;
         block_time: string;
-        receipt: {status: string; cpu_usage_us: number; net_usage_words: number};
+        receipt: { status: string; cpu_usage_us: number; net_usage_words: number };
         elapsed: number;
         net_usage: number;
         scheduled: boolean;
@@ -537,16 +551,16 @@ export interface GetTableRowsParams<Index = TableIndexType | string> {
     reverse?: boolean;
     /** Position of the index used, defaults to primary. */
     index_position?:
-        | 'primary'
-        | 'secondary'
-        | 'tertiary'
-        | 'fourth'
-        | 'fifth'
-        | 'sixth'
-        | 'seventh'
-        | 'eighth'
-        | 'ninth'
-        | 'tenth';
+    | 'primary'
+    | 'secondary'
+    | 'tertiary'
+    | 'fourth'
+    | 'fifth'
+    | 'sixth'
+    | 'seventh'
+    | 'eighth'
+    | 'ninth'
+    | 'tenth';
     /**
      * Whether node should try to decode row data using code abi.
      * Determined automatically based the `type` param if omitted.
@@ -597,7 +611,7 @@ export class GetTableByScopeResponseRow extends Struct {
 
 @Struct.type('get_table_by_scope_response')
 export class GetTableByScopeResponse extends Struct {
-    @Struct.field(GetTableByScopeResponseRow, {array: true})
+    @Struct.field(GetTableByScopeResponseRow, { array: true })
     declare rows: GetTableByScopeResponseRow[];
     @Struct.field('string') declare more: string;
 }
@@ -614,7 +628,7 @@ export class OrderedActionsResult extends Struct {
 
 @Struct.type('get_actions_response')
 export class GetActionsResponse extends Struct {
-    @Struct.field(OrderedActionsResult, {array: true})
+    @Struct.field(OrderedActionsResult, { array: true })
     declare actions: OrderedActionsResult[];
     @Struct.field(Int32) declare last_irreversible_block: Int32;
     @Struct.field(Int32) declare head_block_num: Int32;
@@ -662,7 +676,7 @@ export class Trx extends Struct {
     @Struct.field('number') declare max_net_usage_words: number;
     @Struct.field('number') declare ref_block_num: number;
     @Struct.field('number') declare ref_block_prefix: number;
-    @Struct.field('string', {array: true}) declare signatures: string[];
+    @Struct.field('string', { array: true }) declare signatures: string[];
 }
 
 @Struct.type('transaction_info')
@@ -683,7 +697,7 @@ export class GetTransactionResponse extends Struct {
 
 @Struct.type('get_key_accounts_response')
 export class GetKeyAccountsResponse extends Struct {
-    @Struct.field('name', {array: true}) declare account_names: Name[];
+    @Struct.field('name', { array: true }) declare account_names: Name[];
 }
 
 @Struct.type('get_code_response')
@@ -697,7 +711,7 @@ export class GetCodeResponse extends Struct {
 
 @Struct.type('get_controlled_accounts_response')
 export class GetControlledAccountsResponse extends Struct {
-    @Struct.field('name', {array: true}) declare controlled_accounts: Name[];
+    @Struct.field('name', { array: true }) declare controlled_accounts: Name[];
 }
 
 export interface GetCurrencyStatsResponse {
@@ -727,7 +741,7 @@ export class GetTransactionStatusResponse extends Struct {
 @Struct.type('producer_authority')
 export class ProducerAuthority extends Struct {
     @Struct.field(UInt32) threshold!: UInt32;
-    @Struct.field(KeyWeight, {array: true}) keys!: KeyWeight[];
+    @Struct.field(KeyWeight, { array: true }) keys!: KeyWeight[];
 }
 
 export type ProducerEntry = [number, ProducerAuthority];
@@ -735,7 +749,7 @@ export type ProducerEntry = [number, ProducerAuthority];
 @Struct.type('producer')
 export class Producer extends Struct {
     @Struct.field('name') declare producer_name: Name;
-    @Struct.field('any', {array: true}) declare authority: ProducerEntry;
+    @Struct.field('any', { array: true }) declare authority: ProducerEntry;
 
     static from(data: any) {
         return super.from({
@@ -748,16 +762,16 @@ export class Producer extends Struct {
 @Struct.type('producer_schedule')
 export class ProducerSchedule extends Struct {
     @Struct.field('uint32') declare version: UInt32;
-    @Struct.field(Producer, {array: true}) declare producers: Producer[];
+    @Struct.field(Producer, { array: true }) declare producers: Producer[];
 }
 
 @Struct.type('get_producer_schedule_response')
 export class GetProducerScheduleResponse extends Struct {
-    @Struct.field(ProducerSchedule, {optional: true})
+    @Struct.field(ProducerSchedule, { optional: true })
     declare active: ProducerSchedule;
-    @Struct.field(ProducerSchedule, {optional: true})
+    @Struct.field(ProducerSchedule, { optional: true })
     declare pending: ProducerSchedule;
-    @Struct.field(ProducerSchedule, {optional: true})
+    @Struct.field(ProducerSchedule, { optional: true })
     declare proposed: ProducerSchedule;
 }
 
@@ -767,16 +781,16 @@ export class ProtocolFeature extends Struct {
     @Struct.field('uint32') declare activation_ordinal: UInt32;
     @Struct.field('uint32') declare activation_block_num: UInt32;
     @Struct.field('checksum256') declare description_digest: Checksum256;
-    @Struct.field('string', {array: true}) declare dependencies: string[];
+    @Struct.field('string', { array: true }) declare dependencies: string[];
     @Struct.field('string') declare protocol_feature_type: string;
-    @Struct.field('any', {array: true}) declare specification: any[];
+    @Struct.field('any', { array: true }) declare specification: any[];
 }
 
 @Struct.type('get_protocol_features_response')
 export class GetProtocolFeaturesResponse extends Struct {
-    @Struct.field(ProtocolFeature, {array: true})
+    @Struct.field(ProtocolFeature, { array: true })
     declare activated_protocol_features: ProtocolFeature[];
-    @Struct.field('uint32', {optional: true}) declare more: UInt32;
+    @Struct.field('uint32', { optional: true }) declare more: UInt32;
 }
 
 export interface GetProtocolFeaturesParams {
