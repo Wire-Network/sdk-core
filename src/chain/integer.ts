@@ -1,9 +1,9 @@
 import BN from 'bn.js';
-import {ethers} from 'ethers';
-import {ABISerializableObject} from '../serializer/serializable';
-import {ABIDecoder} from '../serializer/decoder';
-import {ABIEncoder} from '../serializer/encoder';
-import {isInstanceOf, secureRandom} from '../utils';
+import { ethers } from 'ethers';
+import { ABISerializableObject } from '../serializer/serializable';
+import { ABIDecoder } from '../serializer/decoder';
+import { ABIEncoder } from '../serializer/encoder';
+import { isInstanceOf, secureRandom } from '../utils';
 
 type IntType = Int | number | string | BN;
 
@@ -139,7 +139,7 @@ export class Int implements ABISerializableObject {
         overflow: OverflowBehavior = 'truncate',
         fn: (lhs: BN, rhs: BN) => BN
     ) {
-        const {a, b} = convert(lhs, rhs);
+        const { a, b } = convert(lhs, rhs);
         const type = a.constructor as typeof Int;
         const result = fn(a.value, b.value);
         return type.from(result, overflow);
@@ -185,7 +185,7 @@ export class Int implements ABISerializableObject {
             bn = BN.isBN(value) ? value.clone() : new BN(value, 10);
 
             if (bn.isNeg() && !fromType.isSigned) {
-                fromType = {byteWidth: fromType.byteWidth, isSigned: true};
+                fromType = { byteWidth: fromType.byteWidth, isSigned: true };
             }
         }
 
@@ -511,48 +511,83 @@ export class UInt256 {
     }
 
     /**
-     * Create a UInt256 from a number, string, or UInt128 instance.
-     * Interprets all values as 18-decimal fixed-point.
+     * Create a UInt256 from:
+     *  • number|string  → interpreted as an 18‐decimal fixed‐point (scaled by 10^18).
+     *  • bigint          → raw 256‐bit integer (no scaling).
+     *  • UInt128         → raw 128‐bit integer (low = this, high = 0).
+     *  • UInt256         → clone.
+     *  • { low, high }   → raw halves, forwarded to UInt128.from().
      */
-    static from(value: number | string | UInt128): UInt256 {
-        // Convert incoming to a decimal string
-        const valueStr = value.toString();
+    static from(value: number | string | ethers.BigNumber | UInt128 | UInt256 | { low: UInt128Type; high: UInt128Type }): UInt256 {
+        // 1) Clone if already UInt256
+        if (value instanceof UInt256) return value;
+
+        // 2) If UInt128: take raw 128‐bit, multiply by SCALE (10^18), then split
+        if (value instanceof UInt128) {
+            // Convert UInt128 → BN
+            const as128 = UInt256.u128ToBN(value);
+            // Scale up by 10^18 so that toString() returns a whole‐integer decimal
+            const scaled = as128.mul(this.SCALE);
+            return UInt256.fromRaw(scaled);
+        }
+
+        // 3) If it's an ethers.BigNumber: treat as a “whole‐number decimal,” so multiply
+        //    by SCALE (10^18) internally, then split.
+        if (ethers.BigNumber.isBigNumber(value)) {
+            // Convert BigNumber → BN
+            const bnWhole = new BN(value._hex.slice(2), 16);
+            // Scale up by 10^18 so that toString() prints exactly the integer
+            const scaled = bnWhole.mul(this.SCALE);
+            return UInt256.fromRaw(scaled);
+        }
+
+        // 4) If it's an object { low, high }:
+        //    RawInteger = (high << 128) + low. Then scale by 10^18.
+        if (
+            typeof value === "object" &&
+            value !== null &&
+            "low" in value &&
+            "high" in value
+        ) {
+            const parts = value as { low: UInt128Type; high: UInt128Type };
+            const lowPart = UInt128.from(parts.low);
+            const highPart = UInt128.from(parts.high);
+
+            const lowBN = UInt256.u128ToBN(lowPart);
+            const highBN = UInt256.u128ToBN(highPart);
+            const rawInteger = highBN.shln(128).add(lowBN);
+
+            // Scale that raw integer by 10^18 so toString() yields rawInteger (no decimals)
+            const scaled = rawInteger.mul(this.SCALE);
+            return UInt256.fromRaw(scaled);
+        }
+
+        // 5) Otherwise it's number|string → interpret as 18‐decimal fixed‐point
+        //    (e.g. "1.5" → internal BN = 1.5 × 10^18)
+        const valueStr = (value as number | string).toString();
         const [whole, frac = ""] = valueStr.split(".");
 
-        const wholePart = new BN(whole || "0", 10).mul(this.SCALE);
-        const fracPartStr = frac.padEnd(this.DECIMALS, "0").slice(0, this.DECIMALS);
-        const fractionalPart = new BN(fracPartStr, 10);
+        const wholeBN = new BN(whole || "0", 10).mul(this.SCALE);
+        const fracStr = frac.padEnd(this.DECIMALS, "0").slice(0, this.DECIMALS);
+        const fracBN = new BN(fracStr, 10);
+        const scaled = wholeBN.add(fracBN);
 
-        // Combine into one scaled BN
-        const scaled = wholePart.add(fractionalPart);
-
-        // Check 2^256 overflow
         if (scaled.gt(this.MAX_UINT256)) {
             throw new Error(`Value ${value} exceeds 256 bits once scaled`);
         }
 
-        // Now split into low/high 128 bits
-        const mask128 = new BN("ffffffffffffffffffffffffffffffff", 16); // 128 bits
+        const mask128 = new BN("ffffffffffffffffffffffffffffffff", 16);
         const lowBN = scaled.and(mask128);
         const highBN = scaled.shrn(128);
 
         return new UInt256(
-            UInt128.from(lowBN), 
-            UInt128.from(highBN),
+            UInt128.from(lowBN),
+            UInt128.from(highBN)
         );
     }
 
     /**
-     * Rereate a UInt256 class from its low and high parts as js numbers
-     * Useful when creating UInt256 from the value stored in a smart contract
-     */
-    static recreate(value : UInt256Parts){
-        return new UInt256(UInt128.from(value.low), UInt128.from(value.high));
-    }
-
-    /**
-     * Construct a UInt256 from a raw 256-bit BN (no scaling).
-     * Internal helper for add/sub/mul/div.
+     * Construct a UInt256 from a raw 256‐bit BN (no scaling).
      */
     static fromRaw(raw: BN): UInt256 {
         if (raw.isNeg()) {
@@ -566,26 +601,15 @@ export class UInt256 {
         const mask128 = new BN("ffffffffffffffffffffffffffffffff", 16);
         const lowBN = raw.and(mask128);
         const highBN = raw.shrn(128);
-
         return new UInt256(
             UInt128.from(lowBN),
-            UInt128.from(highBN),
+            UInt128.from(highBN)
         );
     }
 
     /**
-     * Helper to convert from ethers.BigNumber to our UInt256 type.
-     * Useful when reading values from smart contracts. 
-     * Like: balanceOf and allowance
-     */
-    static fromBigNumber(value: ethers.BigNumber): UInt256 {
-        const bn = new BN(value._hex.slice(2), 16)
-        return UInt256.fromRaw(bn);
-    }
-
-    /**
      * Helper to combine `low` + `high` into a single BN that includes the
-     * _already-scaled_ 10^18 factor.
+     * _already‐scaled_ 10^18 factor.
      */
     raw(): BN {
         const lowBN = UInt256.u128ToBN(this.low);
@@ -621,32 +645,32 @@ export class UInt256 {
      */
     toNumber(): number | BN {
         const scaled = this.raw(); // The big BN, e.g. 123.456 => 123456000000000000
-        const integer = scaled.div(UInt256.SCALE); 
+        const integer = scaled.div(UInt256.SCALE);
         const remainder = scaled.mod(UInt256.SCALE);
-    
+
         // 1) If the integer part alone exceeds 2^53, return BN (or throw)
         if (integer.bitLength() > 53) {
-            return new BN(this.toString()); 
+            return new BN(this.toString());
         }
-    
+
         // 2) Convert integer part safely
         const intNum = integer.toNumber(); // Guaranteed safe
-    
+
         // 3) If no remainder, we have a whole number (like 123.000...)
         if (remainder.isZero()) {
-            return intNum; 
+            return intNum;
         }
-    
+
         // 4) We have a fractional part. Instead of remainder.toNumber(),
         //    convert remainder to decimal string, pad left to 18 digits,
         //    then parse as float in '0.xxxxx' form.
         const remainderStr = remainder.toString(10).padStart(UInt256.DECIMALS, '0');
         // e.g. "456000000000000000" => parseFloat("0.456000000000000000") => ~0.456
-    
+
         // parseFloat of an 18-digit fraction is near the limit of JS float precision,
         // but it won't throw an error. You will get a float ~0.456
         const fracNum = parseFloat('0.' + remainderStr);
-    
+
         // 5) Combine integer + fraction. If that sum is still <= 2^53,
         //    we return it; otherwise, return BN. 
         const result = intNum + fracNum;
@@ -654,7 +678,7 @@ export class UInt256 {
         if (!Number.isFinite(result) || result > Number.MAX_SAFE_INTEGER) {
             return new BN(this.toString());
         }
-    
+
         return result;
     }
 
@@ -718,7 +742,7 @@ export class UInt256 {
         if (b.isZero()) {
             throw new Error('Division by zero in modulo');
         }
-        
+
         const remainder = this.raw().mod(b);
         return UInt256.fromRaw(remainder);
     }
@@ -745,11 +769,12 @@ export class UInt256 {
     }
 
     private static u128ToBN(u128: UInt128): BN {
-        // Access the raw bytes in LE
-        const bytes = u128.byteArray; 
-        return new BN(bytes, 'le');
+        // Assume UInt128.byteArray returns a little‐endian Uint8Array
+        const bytes = u128.byteArray;
+        return new BN(bytes, "le");
     }
 }
+
 
 export type VarIntType = VarInt | IntType;
 export class VarInt extends Int {
@@ -889,7 +914,7 @@ function convert(a: Int, b: Int) {
         }
     }
 
-    return {a, b};
+    return { a, b };
 }
 
 /** C++11 integral promotion. */

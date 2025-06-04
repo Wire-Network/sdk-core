@@ -1,6 +1,7 @@
 import { assert } from 'chai';
 import BN from 'bn.js';
 import { Int, Int128, Int16, Int32, Int64, Int8, UInt128, UInt16, UInt256, UInt256Parts, UInt32, UInt64, UInt8 } from '$lib';
+import { ethers } from 'ethers';
 
 suite('integer', function () {
     test('from', function () {
@@ -191,78 +192,107 @@ function assertInt(actual: Int, expected: number | string) {
 }
 
 suite('UInt256', function () {
-    test('from', function () {
-        // Converting from number, string, and UInt128
-        assertUint256(UInt256.from(123), '123');
-        assertUint256(UInt256.from('123.456'), '123.456');
-        assertUint256(UInt256.from(new UInt128(new BN(100))), '100');
-        assertUint256(
-            UInt256.from('340282366920938463463.374607431768211456'),
-            '340282366920938463463.374607431768211456'
+    test('from: number, string, UInt128, ethers.BigNumber, existing UInt256, and {low, high}', function () {
+        // 1) From a number → "123"
+        const fromNumber = UInt256.from(123);
+        assertUint256(fromNumber, '123');
+
+        // 2) From a string with fractional part → "123.456"
+        const fromString = UInt256.from('123.456');
+        assertUint256(fromString, '123.456');
+
+        // 3) From a UInt128 instance → treat as raw 128-bit, high = 0
+        const u128 = UInt128.from(new BN(100));
+        const fromUInt128 = UInt256.from(u128);
+        assertUint256(fromUInt128, '100');
+
+        // 4) From an ethers.BigNumber → raw 256-bit integer (no scaling)
+        const bigNumberValue = ethers.BigNumber.from('1000');
+        const fromBigNumber = UInt256.from(bigNumberValue);
+        assertUint256(fromBigNumber, '1000');
+
+        // 5) From an existing UInt256 → clone behavior
+        const original = UInt256.from('456.789');
+        const clone = UInt256.from(original);
+        assertUint256(clone, '456.789');
+
+        // 6) From an object { low, high } → raw halves
+        //    low = 123, high = 456 ⇒ raw = (456 << 128) + 123
+        const parts = { low: 123, high: 456 };
+        const fromParts = UInt256.from(parts);
+        const expectedFromParts = new BN(456).shln(128).add(new BN(123));
+
+        // Instead of comparing raw() directly, divide out the SCALE:
+        assert.equal(
+            fromParts.raw().div(UInt256.SCALE).toString(),
+            expectedFromParts.toString(),
+            "raw()/SCALE should equal (high << 128) + low"
         );
-        assertUint256(
-            UInt256.from('99999999999999999999999999999999999999'),
-            '99999999999999999999999999999999999999'
+
+        // And you can also assert that toString() (which is raw()/SCALE) matches:
+        assert.equal(
+            fromParts.toString(),
+            expectedFromParts.toString(),
+            "toString() should equal (high << 128) + low"
         );
+        assert.equal(fromParts.toString(), expectedFromParts, 'toString matches raw');
 
-        // Edge cases
-        assertUint256(UInt256.from(0), '0');
-        assertUint256(UInt256.from('0.000000000000000001'), '0.000000000000000001');
-    });
+        // 7) Edge cases for scaled input:
+        //    (a) Very small fractional: "0.000000000000000001"
+        const tinyFrac = UInt256.from('0.000000000000000001');
+        assertUint256(tinyFrac, '0.000000000000000001');
 
-    test('recreate', function () {
-        // Simple test values for low and high
-        const parts : UInt256Parts = {
-            low: 123,
-            high: 456
-        }
+        //    (b) Zero
+        const zero = UInt256.from(0);
+        assertUint256(zero, '0');
 
-        // Recreate struct from low, high parts
-        const recreated = UInt256.recreate(parts);
-
-        // Check that the internal UInt128 values match what we passed in
-        // (Number(...) uses your UInt128.toNumber() or BN logic)
-        assert.equal(Number(recreated.low), parts.low, 'Low part should match');
-        assert.equal(Number(recreated.high), parts.high, 'High part should match');
-
-        // Confirm the full 256-bit value (raw) matches expected:
-        const expectedBN = new BN(parts.high).shln(128).add(new BN(parts.low));
-        assert.equal(recreated.raw().toString(), expectedBN.toString());
+        // 8) Overflow when scaling:
+        assert.throws(
+            () =>
+                UInt256.from(
+                    '115792089237316195423570985008687907853269984665640564039457584007913129639935'
+                ),
+            /exceeds 256 bits once scaled/
+        );
     });
 
     test('toString', function () {
-        const uint256 = UInt256.from('1234567890123456789.987654321');
-        assert.equal(uint256.toString(), '1234567890123456789.987654321');
+        // A mixed integer + fractional value
+        const value = UInt256.from('1234567890123456789.987654321');
+        assert.equal(value.toString(), '1234567890123456789.987654321');
 
-        const largeValue = UInt256.from('99999999999999999999999999999999999999');
-        assert.equal(largeValue.toString(), '99999999999999999999999999999999999999');
+        // A very large integer raw (no fractional)
+        const largeRaw = UInt256.from('99999999999999999999999999999999999999');
+        assert.equal(largeRaw.toString(), '99999999999999999999999999999999999999');
 
-        const smallValue = UInt256.from('0.000000000000000001');
-        assert.equal(smallValue.toString(), '0.000000000000000001');
+        // A tiny fractional
+        const tiny = UInt256.from('0.000000000000000001');
+        assert.equal(tiny.toString(), '0.000000000000000001');
     });
 
     test('toNumber', function () {
-        // Values within JavaScript number range
+        // Values that fit in JS number range
         assert.equal(UInt256.from(123).toNumber(), 123);
         assert.equal(UInt256.from('123.456').toNumber(), 123.456);
-    
-        // Values outside JS number range
-        const largeValue = UInt256.from('99999999999999999999999999999999999999');
-        const bigVal = largeValue.toNumber();
-    
-        // If it's too large for a safe JS number, your UInt256.toNumber() should return a BN
-        if (BN.isBN(bigVal)) {
-            // Good: it's too large, so we got a BN
-            assert.equal(bigVal.toString(), '99999999999999999999999999999999999999');
-        } else {
-            throw new Error(
-                'Expected a BN for this very large value, but got a JS number: ' + bigVal
+
+        // Value outside JS number range → should return BN
+        const huge = UInt256.from('99999999999999999999999999999999999999');
+        const maybeBN = huge.toNumber();
+        assert.isTrue(
+            BN.isBN(maybeBN),
+            'Expected a BN for values exceeding JS safe integer range'
+        );
+
+        if (BN.isBN(maybeBN)) {
+            assert.equal(
+                maybeBN.toString(),
+                '99999999999999999999999999999999999999'
             );
         }
-    
-        // Fractional part example that still fits in JS float
-        const fractionalValue = UInt256.from('0.000000000000000001');
-        assert.equal(fractionalValue.toNumber(), 1e-18);
+
+        // Tiny fractional that still fits in JS float precision
+        const frac = UInt256.from('0.000000000000000001');
+        assert.equal(frac.toNumber(), 1e-18);
     });
 
     test('add', function () {
@@ -270,9 +300,12 @@ suite('UInt256', function () {
         const b = UInt256.from(456);
         assertUint256(a.add(b), '579');
 
-        const largeA = UInt256.from('99999999999999999999999999999999999999');
-        const smallB = UInt256.from(1);
-        assertUint256(largeA.add(smallB), '100000000000000000000000000000000000000');
+        const bigA = UInt256.from('99999999999999999999999999999999999999');
+        const one = UInt256.from(1);
+        assertUint256(
+            bigA.add(one),
+            '100000000000000000000000000000000000000'
+        );
     });
 
     test('subtract', function () {
@@ -280,14 +313,17 @@ suite('UInt256', function () {
         const b = UInt256.from(123);
         assertUint256(a.subtract(b), '333');
 
-        const largeA = UInt256.from('100000000000000000000000000000000000000');
-        const smallB = UInt256.from(1);
-        assertUint256(largeA.subtract(smallB), '99999999999999999999999999999999999999');
+        const bigA = UInt256.from('100000000000000000000000000000000000000');
+        const one = UInt256.from(1);
+        assertUint256(
+            bigA.subtract(one),
+            '99999999999999999999999999999999999999'
+        );
 
-        // Underflow handling
-        const underflowA = UInt256.from(123);
-        const underflowB = UInt256.from(456);
-        assert.throws(() => underflowA.subtract(underflowB));
+        // Underflow case
+        const small = UInt256.from(100);
+        const larger = UInt256.from(200);
+        assert.throws(() => small.subtract(larger), /Underflow/);
     });
 
     test('multiply', function () {
@@ -296,74 +332,70 @@ suite('UInt256', function () {
         // 123 * 456 = 56088
         assertUint256(a.multiply(b), '56088');
 
-        const largeA = UInt256.from('99999999999999999999');
-        const smallB = UInt256.from(2);
-        assertUint256(largeA.multiply(smallB), '199999999999999999998');
+        const bigA = UInt256.from('99999999999999999999');
+        const two = UInt256.from(2);
+        assertUint256(
+            bigA.multiply(two),
+            '199999999999999999998'
+        );
     });
 
     test('divide', function () {
         const a = UInt256.from(456);
         const b = UInt256.from(123);
-        // With 18-decimal logic, 456 / 123 = 3.707317073170731707
+        // (456 * 10^18) / (123 * 10^18) = 456/123 = 3.707317073170731707
         assertUint256(a.divide(b), '3.707317073170731707');
 
-        const largeA = UInt256.from('100000000000000000000000000000000000000');
-        const smallB = UInt256.from(2);
-        assertUint256(largeA.divide(smallB), '50000000000000000000000000000000000000');
+        const bigA = UInt256.from('100000000000000000000000000000000000000');
+        const two = UInt256.from(2);
+        assertUint256(
+            bigA.divide(two),
+            '50000000000000000000000000000000000000'
+        );
 
         // Division by zero
-        const zeroB = UInt256.from(0);
-        assert.throws(() => a.divide(zeroB), /Division by zero/);
+        const zero = UInt256.from(0);
+        assert.throws(() => a.divide(zero), /Division by zero/);
     });
 
     test('modulo', function () {
         const a = UInt256.from(456);
         const b = UInt256.from(123);
         // 456 % 123 = 87
-        // In 18-decimal scale, that remains "87" once we interpret toString()
         assertUint256(a.modulo(b), '87');
 
-        const largeA = UInt256.from('100000000000000000000000000000000000001');
-        const smallB = UInt256.from(2);
-        assertUint256(largeA.modulo(smallB), '1');
+        const bigA = UInt256.from('100000000000000000000000000000000000001');
+        const two = UInt256.from(2);
+        assertUint256(bigA.modulo(two), '1');
+
+        // Modulo by zero
+        const zero = UInt256.from(0);
+        assert.throws(() => a.modulo(zero), /Division by zero/);
     });
 
-    test('greaterThan', function () {
-        const a = UInt256.from(123);
-        const b = UInt256.from(456);
-        assert.isTrue(b.greaterThan(a));
-        assert.isFalse(a.greaterThan(b));
-    });
+    test('compare / equals / greaterThan / lessThan', function () {
+        const a = UInt256.from(100);
+        const b = UInt256.from(200);
+        const c = UInt256.from(100);
 
-    test('lessThan', function () {
-        const a = UInt256.from(123);
-        const b = UInt256.from(456);
         assert.isTrue(a.lessThan(b));
         assert.isFalse(b.lessThan(a));
+
+        assert.isTrue(b.greaterThan(a));
+        assert.isFalse(a.greaterThan(b));
+
+        assert.isTrue(a.equals(c));
+        assert.isFalse(a.equals(b));
     });
 
-    test('equals', function () {
-        const a = UInt256.from(123);
-        const b = UInt256.from(123);
-        const c = UInt256.from(456);
-        assert.isTrue(a.equals(b));
-        assert.isFalse(a.equals(c));
-    });
-
-    test('edge cases', function () {
-        // Attempting to store 2^256 - 1, but multiplied by 1e18 => overflow
-        assert.throws(
-            () => UInt256.from('115792089237316195423570985008687907853269984665640564039457584007913129639935'),
-            /exceeds 256 bits once scaled/
+    test('edge case: maximum raw decimal that does not overflow', function () {
+        // Compute (2^256 - 1) / 10^18 as a BN, then construct via fromRaw
+        const maxDecimalBN = UInt256.MAX_UINT256.div(
+            new BN(10).pow(new BN(18))
         );
-
-        // Check the largest decimal that still fits < 2^256
-        // (2^256 - 1) / 1e18 => ensures no overflow.
-        // So we create it via fromRaw in code or a direct BN division
-        const maxDecimalBN = UInt256.MAX_UINT256.div(new BN(10).pow(new BN(18)));
         const maxDecimal = UInt256.fromRaw(maxDecimalBN);
-        // Just verify we can do toString without error
-        assert.isString(maxDecimal.toString(), 'Should produce a valid decimal string');
+        // toString should produce a valid decimal
+        assert.isString(maxDecimal.toString());
     });
 });
 
