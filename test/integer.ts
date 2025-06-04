@@ -1,6 +1,7 @@
 import { assert } from 'chai';
 import BN from 'bn.js';
 import { Int, Int128, Int16, Int32, Int64, Int8, UInt128, UInt16, UInt256, UInt256Parts, UInt32, UInt64, UInt8 } from '$lib';
+import { ethers } from 'ethers';
 
 suite('integer', function () {
     test('from', function () {
@@ -192,7 +193,7 @@ function assertInt(actual: Int, expected: number | string) {
 
 suite('UInt256', function () {
     test('from', function () {
-        // Converting from number, string, and UInt128
+        // Converting from number, string, and UInt128 (existing tests)
         assertUint256(UInt256.from(123), '123');
         assertUint256(UInt256.from('123.456'), '123.456');
         assertUint256(UInt256.from(new UInt128(new BN(100))), '100');
@@ -208,26 +209,63 @@ suite('UInt256', function () {
         // Edge cases
         assertUint256(UInt256.from(0), '0');
         assertUint256(UInt256.from('0.000000000000000001'), '0.000000000000000001');
-    });
 
-    test('recreate', function () {
-        // Simple test values for low and high
-        const parts : UInt256Parts = {
-            low: 123,
-            high: 456
-        }
+        // —————————————————————————————————————————————————————————————————
+        // Tests for the newly added input types:
 
-        // Recreate struct from low, high parts
-        const recreated = UInt256.recreate(parts);
+        // 1) From an existing UInt256 (clone behavior)
+        const original = UInt256.from('789.012');
+        const cloned = UInt256.from(original);
+        // Cloned should produce the same decimal string
+        assertUint256(cloned, '789.012');
+        // And low/high fields should match
+        assert.equal(
+            cloned.low.toString(),
+            original.low.toString(),
+            'Clone.low matches'
+        );
+        assert.equal(
+            cloned.high.toString(),
+            original.high.toString(),
+            'Clone.high matches'
+        );
 
-        // Check that the internal UInt128 values match what we passed in
-        // (Number(...) uses your UInt128.toNumber() or BN logic)
-        assert.equal(Number(recreated.low), parts.low, 'Low part should match');
-        assert.equal(Number(recreated.high), parts.high, 'High part should match');
+        // 2) From an ethers.BigNumber → treat as a whole‐integer decimal
+        const bigNumberValue = ethers.BigNumber.from('1000');
+        const fromBigNumber = UInt256.from(bigNumberValue);
+        assertUint256(fromBigNumber, '1000');
 
-        // Confirm the full 256-bit value (raw) matches expected:
-        const expectedBN = new BN(parts.high).shln(128).add(new BN(parts.low));
-        assert.equal(recreated.raw().toString(), expectedBN.toString());
+        // 3) From a BN (raw integer)
+        const bnValue = new BN('2500');
+        const fromBN = UInt256.from(bnValue);
+        assertUint256(fromBN, '2500');
+
+        // 4) From a { low, high } object:
+        //    low = 123, high = 456 → raw = (456 << 128) + 123
+        //    But since this branch does not apply any scaling, we check low/high directly
+        const parts = { low: 123, high: 456 };
+        const fromParts = UInt256.from(parts);
+        // low field should be exactly 123
+        assert.equal(Number(fromParts.low), 123, 'Parts.low matches');
+        // high field should be exactly 456
+        assert.equal(Number(fromParts.high), 456, 'Parts.high matches');
+        // raw() = (456 << 128) + 123;  toString() should reflect that divided by 10^18
+        const rawInteger = new BN(456).shln(128).add(new BN(123));
+        // Since toString() prints raw/SCALE, expect a fractional decimal:
+        const expectedStr = rawInteger
+            .div(new BN(10).pow(new BN(UInt256.DECIMALS)))
+            .toString() +
+            '.' +
+            rawInteger
+                .mod(new BN(10).pow(new BN(UInt256.DECIMALS)))
+                .toString()
+                .padStart(UInt256.DECIMALS, '0')
+                .replace(/0+$/, '');
+        assert.equal(
+            fromParts.toString(),
+            expectedStr,
+            'toString() for {low, high} branch yields raw/SCALE'
+        );
     });
 
     test('toString', function () {
@@ -245,11 +283,11 @@ suite('UInt256', function () {
         // Values within JavaScript number range
         assert.equal(UInt256.from(123).toNumber(), 123);
         assert.equal(UInt256.from('123.456').toNumber(), 123.456);
-    
+
         // Values outside JS number range
         const largeValue = UInt256.from('99999999999999999999999999999999999999');
         const bigVal = largeValue.toNumber();
-    
+
         // If it's too large for a safe JS number, your UInt256.toNumber() should return a BN
         if (BN.isBN(bigVal)) {
             // Good: it's too large, so we got a BN
@@ -259,7 +297,7 @@ suite('UInt256', function () {
                 'Expected a BN for this very large value, but got a JS number: ' + bigVal
             );
         }
-    
+
         // Fractional part example that still fits in JS float
         const fractionalValue = UInt256.from('0.000000000000000001');
         assert.equal(fractionalValue.toNumber(), 1e-18);
