@@ -1,19 +1,17 @@
-import { ActionType, NameType } from '../chain';
-
-
 export * as v1 from './v1/types';
 export * as v2 from './v2/types';
 
-import * as v1 from './v1/types';
+import { ActionType, NameType } from '../chain';
+import { TableIndexType, TableIndexTypes } from './v1/types';
 export interface GetRowsOptions {
     contract: NameType;
     scope?: NameType;
     table: NameType;
     index_position?: "primary" | "secondary" | "tertiary" | "fourth" | "fifth" | "sixth" | "seventh" | "eighth" | "ninth" | "tenth" | undefined;
     limit?: number;
-    lower_bound?: v1.TableIndexType | string;
-    upper_bound?: v1.TableIndexType | string;
-    key_type?: keyof v1.TableIndexTypes;
+    lower_bound?: TableIndexType | string;
+    upper_bound?: TableIndexType | string;
+    key_type?: keyof TableIndexTypes;
         // float128: Float128;
         // float64: Float64;
         // i128: UInt128;
