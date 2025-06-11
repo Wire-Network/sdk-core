@@ -1,6 +1,7 @@
 import { ABISerializableObject } from './serializer/serializable';
 import rand from 'brorand';
 import { Base58 } from './base58';
+import { getCurve } from './crypto/curves';
 
 export function arrayEquals(a: ArrayLike<number>, b: ArrayLike<number>) {
     const len = a.length;
@@ -175,3 +176,24 @@ export function evmSigToWire(eth_sig: string, prefix = 'EM') {
 
     return `SIG_${prefix}_${payload}`;
 }
+
+const ec = getCurve('K1')
+
+/**
+ * Get the public key in compressed format from a public or private key.
+ *
+ * @param key Either a public or private key
+ * @param isPrivate Boolean indicating if the key is private, defaults to false.
+ * @returns The public key in compressed format.
+ */
+
+export const getCompressedPublicKey = (
+    key: string,
+    isPrivate = false
+): string => {
+    if (key.startsWith('0x')) key = key.slice(2);
+    const keyPair = isPrivate
+        ? ec.keyFromPrivate(key)
+        : ec.keyFromPublic(key, 'hex');
+    return keyPair.getPublic(true, 'hex');
+};
