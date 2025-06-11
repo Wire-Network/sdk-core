@@ -23,7 +23,7 @@ export interface APIClientOptions extends FetchProviderOptions {
     /** URL specifically for Hyperion API, if available */
     hyperionUrl?: string;
     /** Optional signer function that receives a message digest (Uint8Array) and returns a signed hash (Promise<string>). */
-    signer?: (msgDigest: Uint8Array<ArrayBufferLike>) => Promise<string>;
+    signer?: (msgDigest: Uint8Array) => Promise<string>;
 }
 
 export interface APIErrorDetail {
@@ -114,8 +114,8 @@ export class APIClient {
     readonly v1Provider: APIProvider;
     readonly v2Provider?: APIProvider;
 
-    /** Optional signer function that receives a message digest (Uint8Array<ArrayBufferLike>) and returns a signed hash (Promise<string>). */
-    readonly signer?: (digest: Uint8Array<ArrayBufferLike>) => Promise<string>;
+    /** Optional signer function that receives a message digest Uint8Array and returns a signed hash (Promise<string>). */
+    readonly signer?: (msgDigest: Uint8Array) => Promise<string>;
 
     constructor(options: APIClientOptions) {
         if (options.provider) this.v1Provider = options.provider;
