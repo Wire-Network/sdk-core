@@ -46,7 +46,7 @@
         "no-inner-declarations": "off",
         "es-x/no-optional-chaining": "ERROR",
         "es-x/no-class-fields": "OFF",
-        "es-x/no-export-ns-from": "OFF"
+        "es-x/no-export-ns-from": "OFF",
     },
     "overrides": [
         {

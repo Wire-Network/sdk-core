@@ -2,6 +2,8 @@ import { ABISerializableObject } from './serializer/serializable';
 import rand from 'brorand';
 import { Base58 } from './base58';
 import { getCurve } from './crypto/curves';
+import { KeyType } from './chain';
+import ethers from 'ethers';
 
 export function arrayEquals(a: ArrayLike<number>, b: ArrayLike<number>) {
     const len = a.length;
@@ -177,7 +179,6 @@ export function evmSigToWire(eth_sig: string, prefix = 'EM') {
     return `SIG_${prefix}_${payload}`;
 }
 
-const ec = getCurve('K1')
 
 /**
  * Get the public key in compressed format from a public or private key.
@@ -186,14 +187,59 @@ const ec = getCurve('K1')
  * @param isPrivate Boolean indicating if the key is private, defaults to false.
  * @returns The public key in compressed format.
  */
-
-export const getCompressedPublicKey = (
-    key: string,
-    isPrivate = false
-): string => {
+export const getCompressedPublicKey = (key: string, isPrivate = false): string => {
+    const ec = getCurve(KeyType.K1)
     if (key.startsWith('0x')) key = key.slice(2);
     const keyPair = isPrivate
         ? ec.keyFromPrivate(key)
         : ec.keyFromPublic(key, 'hex');
     return keyPair.getPublic(true, 'hex');
 };
+
+/**
+ * Signs a given hash with the provided private key directly.
+ * This function removes any '0x' prefix from the private key and hash,
+ * signs the hash, and formats the signature in the Ethereum signature format.
+ * Additionally, it computes the Ethereum address corresponding to the private key.
+ *
+ * @param {string} privateKey - The private key in hex format.
+ * @param {string} hash - The hash to be signed.
+ * @returns {SignHash} An object containing the Ethereum signature and address.
+ */
+export const directSignHash = (privateKey: string, hash: string): SignHash => {
+    const ec = getCurve(KeyType.EM)
+    if (privateKey.startsWith('0x')) privateKey = privateKey.slice(2);
+    if (hash.startsWith('0x')) hash = hash.slice(2);
+    const keyPair = ec.keyFromPrivate(privateKey);
+    const sig = keyPair.sign(hash, 'hex');
+
+    // Extract Ethereum address from the keyPair
+    const publicKey = keyPair.getPublic('hex').slice(2); // Remove the '04' prefix (uncompressed format)
+    const pubKeyHash = ethers.utils.keccak256(Buffer.from(publicKey, 'hex'));
+    const address = '0x' + pubKeyHash.slice(-40); // Last 20 bytes as Ethereum address
+
+    // Convert r, s, and recovery param into the Ethereum Signature format
+    const r = sig.r.toString(16).padStart(64, '0');
+    const s = sig.s.toString(16).padStart(64, '0');
+    const v = (sig.recoveryParam || 0) + 27; // 27 or 28
+
+    return { signature: '0x' + r + s + v.toString(16), address };
+};
+
+export interface SignHash {
+    signature: string; // Ethereum signature format
+    address: string; // Ethereum address derived from the private key
+}
+
+// --- hex ↔ bytes helper ---
+// export function hexToBytes(hex: string): Uint8Array {
+//     hex = hex.replace(/^0x/, "");
+//     if (hex.length & 1) hex = "0" + hex;
+//     const out = new Uint8Array(hex.length / 2);
+
+//     for (let i = 0; i < out.length; i++) {
+//         out[i] = parseInt(hex.substr(2 * i, 2), 16);
+//     }
+    
+//     return out;
+// }
