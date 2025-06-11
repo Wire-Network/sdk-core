@@ -1,5 +1,6 @@
-import {ABISerializableObject} from './serializer/serializable';
+import { ABISerializableObject } from './serializer/serializable';
 import rand from 'brorand';
+import { Base58 } from './base58';
 
 export function arrayEquals(a: ArrayLike<number>, b: ArrayLike<number>) {
     const len = a.length;
@@ -33,7 +34,7 @@ export function arrayEquatableEquals(a: ABISerializableObject[], b: ABISerializa
     return true;
 }
 
-const hexLookup: {enc?: Array<string>; dec?: Record<string, number>} = {};
+const hexLookup: { enc?: Array<string>; dec?: Record<string, number> } = {};
 
 function buildHexLookup() {
     hexLookup.enc = new Array<string>(0xff);
@@ -100,7 +101,7 @@ export function secureRandom(length: number): Uint8Array {
 let didWarn = false;
 
 /** Check if object in instance of class. */
-export function isInstanceOf<T extends {new (...args: any[]): InstanceType<T>}>(
+export function isInstanceOf<T extends { new(...args: any[]): InstanceType<T> }>(
     object: any,
     someClass: T
 ): object is InstanceType<T> {
@@ -143,4 +144,34 @@ export function isInstanceOf<T extends {new (...args: any[]): InstanceType<T>}>(
     }
 
     return isAlienInstance;
+}
+
+/**
+ * Convert an Ethereum signature to WIRE format, either K1 or EM based on prefix.
+ *
+ * @param eth_sig A signature in the format of an Ethereum signature.
+ * @param prefix WIRE prefix to use for the signature. K1 or EM, EM by default.
+ * @returns A WIRE formatted signature.
+ */
+export function evmSigToWire(eth_sig: string, prefix = 'EM') {
+    // --- same r/s/v extraction as before ---
+    if ((!eth_sig.startsWith('0x') && eth_sig.length !== 130) ||
+        (eth_sig.startsWith('0x') && eth_sig.length !== 132))
+        throw new Error('Incorrect length or signature type');
+
+    const raw = eth_sig.startsWith('0x') ? eth_sig.slice(2) : eth_sig;
+    const r = raw.slice(0, 64);
+    const s = raw.slice(64, 128);
+    let v = raw.slice(128);
+    v = (parseInt(v, 16) + 4).toString(16).padStart(2, '0');
+
+    const sigBefore = v + r + s; // hex string, no checksum yet
+
+    // ——> this one line replaces your manual digest+slice+hex + ethers.utils.base58.encode:
+    const payload = Base58.encodeRipemd160Check(
+        Buffer.from(sigBefore, 'hex'),
+        prefix
+    );
+
+    return `SIG_${prefix}_${payload}`;
 }
