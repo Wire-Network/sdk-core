@@ -3,7 +3,7 @@ import rand from 'brorand';
 import { Base58 } from './base58';
 import { getCurve } from './crypto/curves';
 import { KeyType } from './chain';
-import ethers from 'ethers';
+import { ethers } from 'ethers';
 
 export function arrayEquals(a: ArrayLike<number>, b: ArrayLike<number>) {
     const len = a.length;
