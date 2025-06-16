@@ -85,7 +85,7 @@ export namespace Chains {
         endpoint: 'https://testnet-00.wire.foundation',
         hyperion: 'https://testnet-hyperion.wire.foundation',
         websocket: 'ws://testnet-ship.wire.foundation',
-        watchdawg: 'http://50.116.39.45:9001',
+        watchdawg: 'https://dawg.wire.foundation',
         namespace: 'sysio',
         coreSymbol: 'SYS',
         selected: true,
