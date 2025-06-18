@@ -2,8 +2,10 @@ import { ABISerializableObject } from './serializer/serializable';
 import rand from 'brorand';
 import { Base58 } from './base58';
 import { getCurve } from './crypto/curves';
-import { KeyType } from './chain';
+import { KeyType, Name, NameType, TimePoint } from './chain';
 import { ethers } from 'ethers';
+import { Serializer } from './serializer';
+import { sha256 } from 'ethers/lib/utils';
 
 export function arrayEquals(a: ArrayLike<number>, b: ArrayLike<number>) {
     const len = a.length;
@@ -187,8 +189,8 @@ export function evmSigToWire(eth_sig: string, prefix = 'EM') {
  * @param isPrivate Boolean indicating if the key is private, defaults to false.
  * @returns The public key in compressed format.
  */
-export const getCompressedPublicKey = (key: string, isPrivate = false): string => {
-    const ec = getCurve(KeyType.K1)
+export const getCompressedPublicKey = (key: string, type: KeyType = KeyType.K1, isPrivate = false): string => {
+    const ec = getCurve(type)
     if (key.startsWith('0x')) key = key.slice(2);
     const keyPair = isPrivate
         ? ec.keyFromPrivate(key)
@@ -231,15 +233,127 @@ export interface SignHash {
     address: string; // Ethereum address derived from the private key
 }
 
-// --- hex ↔ bytes helper ---
-// export function hexToBytes(hex: string): Uint8Array {
-//     hex = hex.replace(/^0x/, "");
-//     if (hex.length & 1) hex = "0" + hex;
-//     const out = new Uint8Array(hex.length / 2);
+// convert all Buffer/JSON->Uint8Array in txExtra
+export const normalizeBytesField = (x: any): Uint8Array => {
+    // already a byte array
+    if (x instanceof Uint8Array) return x;
 
-//     for (let i = 0; i < out.length; i++) {
-//         out[i] = parseInt(hex.substr(2 * i, 2), 16);
-//     }
-    
-//     return out;
-// }
+    // Node.js Buffer
+    if (Buffer.isBuffer(x)) return Uint8Array.from(x);
+
+    // plain number[]
+    if (Array.isArray(x) && x.every(n => typeof n === 'number'))
+        return Uint8Array.from(x);
+
+    // JSON-serialized Buffer { type:"Buffer", data:[…] }
+    if (x && typeof x === 'object' && Array.isArray((x as any).data))
+        return Uint8Array.from((x as any).data);
+
+    // array-like object keyed by "0","1",… 
+    if (x && typeof x === 'object' && !Array.isArray(x)) {
+        const idx = Object.keys(x)
+            .filter(k => /^\d+$/.test(k))
+            .map(k => parseInt(k)).sort((a, b) => a - b);
+
+        if (idx.length) {
+            return Uint8Array.from(idx.map(i => (x as any)[i]));
+        }
+    }
+
+    // hex string
+    if (typeof x === 'string')
+        return ethers.utils.arrayify(x);
+
+    return x
+}
+
+/**
+ * Converts Buffer containing an Ethereum address (link that stored in auth.msg links table)
+ * Adds Ox and resturns as readable hex string
+ * 20 bytes expected
+ *
+ * @param address 20 bytes buffer of eth address
+ * @returns readable hex string of eth address with 0x prefix
+ */
+export const ethAddressBufferToString = (address: Buffer) =>
+    '0x' + Buffer.from(address).toString('hex');
+
+
+/**
+ * Ensures a hex string starts with '0x'.
+ * If it does not, prepends '0x' to the string.
+ * @param hex - The hex string to check
+ * @returns The hex string with '0x' prefix if it was not present
+ */
+export const ensure0x = (hex: string): string => {
+    return hex.startsWith('0x') ? hex : `0x${hex}`;
+};
+
+/**
+ * Converts a TimePoint date to a block timestamp.
+ * 
+ * @param date - The TimePoint date to convert
+ * @returns The block timestamp as a number
+ */
+export const dateToBlockTimestamp = (date: TimePoint): number => {
+    return Math.round((checkDateParse(date.toString() + 'Z') - 946684800000) / 500);
+};
+
+/**
+ * Parses a TimePointSecString date and returns its numeric representation.
+ * 
+ * @param date - The date string in TimePointSecString format to parse
+ * @returns The numeric timestamp representation of the date in milliseconds
+ * @throws Error if the date string cannot be parsed into a valid date
+ */
+export const checkDateParse = (date: TimePointSecString): number => {
+    const result = Date.parse(date);
+
+    if (Number.isNaN(result)) {
+        throw new Error('Invalid time format');
+    }
+
+    return result;
+};
+
+/**
+ * Converts a WIRE name (NameType) to a 64-bit unsigned integer.
+ * 
+ * @param username - The WIRE name to convert
+ * @returns A 64-bit unsigned integer representation of the name
+ */
+export const nameToUInt64 = (username: NameType): number => {
+    const name = Name.from(username);
+    const nameInt = +String(name.value);
+    return nameInt;
+};
+
+/**
+ * Serialize an WIRE name into its 8-byte little-endian hex and prefix with 0x.
+ *
+ * @param input  The name to serialize, either as a string or a Name instance
+ * @returns      A hex string like "0x000000005c73285d"
+ */
+export const serializeName = (input: string | Name): string => {
+    // Ensure we have a Name instance
+    const nameObj = typeof input === 'string'
+        ? Name.from(input)
+        : input;
+
+    const { hexString } = Serializer.encode({ object: nameObj });
+    return `0x${hexString}`;
+};
+
+export type TimePointSecString = string; // ISO date string
+
+/**
+ * Converts any 0x hex string to a checksum hash string that can be used as the sha256 index for a contract table.
+ *
+ * @param hex Any 0x hex string, typically an Ethereum address or signature
+ * @returns Sha256 checksum of the hex
+ */
+export const checksum_hash = (hex: string) => {
+    if (hex.startsWith('0x')) hex = hex.slice(2);
+    const buffer = Buffer.from(hex, 'hex');
+    return sha256(buffer);
+};
