@@ -1,9 +1,10 @@
 /** Supported Wire curve types. */
 export enum KeyType {
-    K1 = 'K1',
-    R1 = 'R1',
-    WA = 'WA',
-    EM = 'EM',
+    K1 = 'K1', // Secp256k1 - used for EOSIO and other chains
+    R1 = 'R1', // Secp256r1 - used for Bitcoin and Ethereum
+    WA = 'WA', // Webassembly - used for WASM based chains like Near
+    EM = 'EM', // Ethereum Message - handles ethereum signed message prefix
+    ED = 'ED'  // Ed25519 - used for Solana and other ED chains
 }
 
 export namespace KeyType {
@@ -17,6 +18,8 @@ export namespace KeyType {
                 return 2;
             case KeyType.EM:
                 return 3;
+            case KeyType.ED:
+                return 4;
             default:
                 throw new Error(`Unknown curve type: ${value}`);
         }
@@ -39,6 +42,8 @@ export namespace KeyType {
                 return KeyType.WA;
             case 3:
                 return KeyType.EM;
+            case 4:
+                return KeyType.ED;
             default:
                 throw new Error('Unknown curve type');
         }

@@ -1,18 +1,20 @@
-import {ABIDecoder} from '../serializer/decoder';
-import {ABIEncoder} from '../serializer/encoder';
-import {ABISerializableObject} from '../serializer/serializable';
+// src/crypto/public_key.ts
 
-import {Base58} from '../base58';
-import {isInstanceOf} from '../utils';
+import { ABIDecoder } from '../serializer/decoder';
+import { ABIEncoder } from '../serializer/encoder';
+import { ABISerializableObject } from '../serializer/serializable';
 
-import {Bytes, KeyType} from '../';
+import { Base58 } from '../base58';
+import { isInstanceOf } from '../utils';
 
-export type PublicKeyType = PublicKey | string | {type: string; compressed: Uint8Array};
+import { Bytes, KeyType } from '../';
+
+export type PublicKeyType = PublicKey | string | { type: string; compressed: Uint8Array };
 
 export class PublicKey implements ABISerializableObject {
     static abiName = 'public_key';
 
-    /** Type, e.g. `K1` */
+    /** Type, e.g. `K1`, `R1`, `EM`, or `ED` */
     type: KeyType;
     /** Compressed public key point. */
     data: Bytes;
@@ -39,8 +41,10 @@ export class PublicKey implements ABISerializableObject {
             }
 
             const type = KeyType.from(parts[1]);
+            // ECDSA curves use 33-byte compressed pubs; ED25519 uses 32-byte
             const size =
-                type === KeyType.K1 || type === KeyType.R1 || type === KeyType.EM ? 33 : undefined;
+                type === KeyType.K1 || type === KeyType.R1 || type === KeyType.EM ? 33 :
+                    type === KeyType.ED ? 32 : undefined;
             const data = Base58.decodeRipemd160Check(parts[2], size, type);
             return new PublicKey(type, data);
         } else if (value.length >= 50) {
@@ -67,7 +71,9 @@ export class PublicKey implements ABISerializableObject {
             return new PublicKey(KeyType.WA, data);
         }
 
-        return new PublicKey(type, new Bytes(decoder.readArray(33)));
+        // ECDSA compressed keys = 33 bytes; ED25519 keys = 32 bytes
+        const len = type === KeyType.ED ? 32 : 33;
+        return new PublicKey(type, new Bytes(decoder.readArray(len)));
     }
 
     /** @internal */
@@ -83,7 +89,7 @@ export class PublicKey implements ABISerializableObject {
 
     /**
      * Return Antelope/EOSIO legacy (`EOS<base58data>`) formatted key.
-     * @throws If the key type isn't `K1` or 'EM'.
+     * @throws If the key type isn't `K1` or `EM`.
      */
     toLegacyString(prefix = 'SYS') {
         if (this.type !== KeyType.K1 && this.type !== KeyType.EM) {

@@ -5,7 +5,6 @@ import { getCurve } from './crypto/curves';
 import { KeyType, Name, NameType, TimePoint } from './chain';
 import { ethers } from 'ethers';
 import { Serializer } from './serializer';
-import { sha256 } from 'ethers/lib/utils';
 
 export function arrayEquals(a: ArrayLike<number>, b: ArrayLike<number>) {
     const len = a.length;
@@ -355,5 +354,5 @@ export type TimePointSecString = string; // ISO date string
 export const checksum_hash = (hex: string) => {
     if (hex.startsWith('0x')) hex = hex.slice(2);
     const buffer = Buffer.from(hex, 'hex');
-    return sha256(buffer);
+    return ethers.utils.sha256(buffer);
 };
