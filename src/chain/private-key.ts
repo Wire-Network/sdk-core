@@ -1,14 +1,14 @@
-import {Base58} from '../base58';
-import {isInstanceOf} from '../utils';
+import { Base58 } from '../base58';
+import { isInstanceOf } from '../utils';
 
-import {getPublic} from '../crypto/get-public';
-import {sharedSecret} from '../crypto/shared-secret';
-import {sign} from '../crypto/sign';
-import {generate} from '../crypto/generate';
+import { getPublic } from '../crypto/get-public';
+import { sharedSecret } from '../crypto/shared-secret';
+import { sign } from '../crypto/sign';
+import { generate } from '../crypto/generate';
 
-import {ec as EC} from 'elliptic';
+import { ec as EC } from 'elliptic';
 
-import {ethers} from 'ethers';
+import { ethers } from 'ethers';
 
 import {
     Bytes,
@@ -43,7 +43,7 @@ export class PrivateKey {
      */
     static fromString(string: string, ignoreChecksumError = false) {
         try {
-            const {type, data} = decodeKey(string);
+            const { type, data } = decodeKey(string);
             return new this(type, data);
         } catch (error: any) {
             error.message = `Invalid private key (${error.message})`;
@@ -56,8 +56,8 @@ export class PrivateKey {
                 const type = string.startsWith('PVT_R1')
                     ? KeyType.R1
                     : string.startsWith('PVT_EM')
-                    ? KeyType.EM
-                    : KeyType.K1;
+                        ? KeyType.EM
+                        : KeyType.K1;
                 const data = new Bytes(error.info.data);
 
                 if (data.length === 33) {
@@ -111,7 +111,7 @@ export class PrivateKey {
      * Generate new PrivateKey.
      * @throws If a secure random source isn't available.
      */
-    static generate(type: KeyType | string) {
+    static generate(type: KeyType) {
         return new PrivateKey(KeyType.from(type), new Bytes(generate(type)));
     }
 
@@ -129,8 +129,8 @@ export class PrivateKey {
     }
 
     /**
-     * Sign message digest using this key.
-     * @throws If the key type isn't R1 or K1.
+     * Sign message digest using this key. 
+     * Supports K1, R1, EM and ED
      */
     signDigest(digest: Checksum256Type) {
         digest = Checksum256.from(digest);
@@ -138,16 +138,16 @@ export class PrivateKey {
     }
 
     /**
-     * Sign message using this key.
-     * @throws If the key type isn't R1 or K1.
+     * Sign message using this key. 
+     * Supports K1, R1, EM and ED
      */
     signMessage(message: BytesType) {
         return this.signDigest(Checksum256.hash(message));
     }
 
     /**
-     * Derive the shared secret between this private key and given public key.
-     * @throws If the key type isn't R1 or K1.
+     * Derive the shared secret between this private key and given public key. 
+     * Supports K1, R1, EM and ED
      */
     sharedSecret(publicKey: PublicKey) {
         const shared = sharedSecret(this.data.array, publicKey.data.array, this.type);
@@ -155,12 +155,12 @@ export class PrivateKey {
     }
 
     /**
-     * Get the corresponding public key.
-     * @throws If the key type isn't R1 or K1.
+     * Get the corresponding public key. 
+     * Supports K1, R1, EM and ED
      */
     toPublic() {
         const compressed = getPublic(this.data.array, this.type);
-        return PublicKey.from({compressed, type: this.type});
+        return PublicKey.from({ compressed, type: this.type });
     }
 
     /**
@@ -220,7 +220,7 @@ function decodeKey(value: string) {
         }
 
         const data = Base58.decodeRipemd160Check(parts[2], size, type);
-        return {type, data};
+        return { type, data };
     } else {
         // WIF format
         const type = KeyType.K1;
@@ -230,6 +230,6 @@ function decodeKey(value: string) {
             throw new Error('Invalid WIF');
         }
 
-        return {type, data: data.droppingFirst()};
+        return { type, data: data.droppingFirst() };
     }
 }

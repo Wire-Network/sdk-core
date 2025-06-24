@@ -1,32 +1,46 @@
-import {ec} from 'elliptic';
-import {getCurve} from './curves';
+import { ec } from 'elliptic';
+import { getCurve } from './curves';
+import { KeyType, SignatureParts } from '../chain';
+import { getSodium } from './sodium';
+const sodium = getSodium();
 
 /**
  * Sign digest using private key.
  * @internal
  */
-export function sign(secret: Uint8Array, message: Uint8Array, type: string) {
-    const curve = getCurve(type);
-    const key = curve.keyFromPrivate(secret);
-    let sig: ec.Signature;
-    let r: Uint8Array;
-    let s: Uint8Array;
+export function sign(secret: Uint8Array, message: Uint8Array, type: KeyType): SignatureParts {
+    switch(type){
+        case KeyType.ED: { // ED25519 detached signature via libsodium
+            const sigBytes = sodium.crypto_sign_detached(message, secret);
+            const r = sigBytes.slice(0, 32);
+            const s = sigBytes.slice(32, 64);
+            return { type, r, s, recid: 0 };
+        }
 
-    if (type === 'K1') {
-        let attempt = 1;
+        default: { // ECDSA curves (K1, R1, EM)
+            const curve = getCurve(type);
+            const key = curve.keyFromPrivate(secret);
+            let sig: ec.Signature;
+            let r: Uint8Array;
+            let s: Uint8Array;
 
-        do {
-            sig = key.sign(message, {canonical: true, pers: [attempt++]});
-            r = sig.r.toArrayLike(Uint8Array as any, 'be', 32);
-            s = sig.s.toArrayLike(Uint8Array as any, 'be', 32);
-        } while (!isCanonical(r, s));
-    } else {
-        sig = key.sign(message, {canonical: true});
-        r = sig.r.toArrayLike(Uint8Array as any, 'be', 32);
-        s = sig.s.toArrayLike(Uint8Array as any, 'be', 32);
+            if (type === KeyType.K1) {
+                let attempt = 1;
+
+                do {
+                    sig = key.sign(message, { canonical: true, pers: [attempt++] });
+                    r = sig.r.toArrayLike(Uint8Array as any, 'be', 32);
+                    s = sig.s.toArrayLike(Uint8Array as any, 'be', 32);
+                } while (!isCanonical(r, s));
+            } else {
+                sig = key.sign(message, { canonical: true });
+                r = sig.r.toArrayLike(Uint8Array as any, 'be', 32);
+                s = sig.s.toArrayLike(Uint8Array as any, 'be', 32);
+            }
+
+            return { type, r, s, recid: sig.recoveryParam || 0 };
+        }
     }
-
-    return {type, r, s, recid: sig.recoveryParam || 0};
 }
 
 /**
