@@ -1,7 +1,6 @@
 import { getCurve } from './curves';
 import { KeyType } from '../chain';
-import { getSodium } from './sodium';
-const sodium = getSodium();
+import nacl from 'tweetnacl';
 
 /**
  * Verify signature using message and public key.
@@ -14,8 +13,8 @@ export function verify(
     type: KeyType
 ): boolean {
     switch (type) {
-        case KeyType.ED: // ED25519 detached verification via libsodium
-            return sodium.crypto_sign_verify_detached(signature, message, pubkey);
+        case KeyType.ED: // ED25519 detached verification via tweetnacl
+            return nacl.sign.detached.verify(message, signature, pubkey);
 
         default: { // ECDSA verification using elliptic
             const curve = getCurve(type);

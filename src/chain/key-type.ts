@@ -2,7 +2,8 @@
 export enum KeyType {
     K1 = 'K1', // Secp256k1 - used for EOSIO and other chains
     R1 = 'R1', // Secp256r1 - used for Bitcoin and Ethereum
-    WA = 'WA', // Webassembly - used for WASM based chains like Near
+    WA = 'WA', // WebauthN - used for WebAuthn and FIDO2
+    // Note: WA is not a curve type but a protocol, it is included for compatibility
     EM = 'EM', // Ethereum Message - handles ethereum signed message prefix
     ED = 'ED'  // Ed25519 - used for Solana and other ED chains
 }

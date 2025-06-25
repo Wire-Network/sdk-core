@@ -1,8 +1,7 @@
 import { ec } from 'elliptic';
 import { getCurve } from './curves';
 import { KeyType, SignatureParts } from '../chain';
-import { getSodium } from './sodium';
-const sodium = getSodium();
+import nacl from 'tweetnacl';
 
 /**
  * Sign digest using private key.
@@ -10,8 +9,8 @@ const sodium = getSodium();
  */
 export function sign(secret: Uint8Array, message: Uint8Array, type: KeyType): SignatureParts {
     switch(type){
-        case KeyType.ED: { // ED25519 detached signature via libsodium
-            const sigBytes = sodium.crypto_sign_detached(message, secret);
+        case KeyType.ED: { // ED25519 detached signature via tweetnacl
+            const sigBytes = nacl.sign.detached(message, secret);
             const r = sigBytes.slice(0, 32);
             const s = sigBytes.slice(32, 64);
             return { type, r, s, recid: 0 };

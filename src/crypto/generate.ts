@@ -2,20 +2,17 @@
 
 import { KeyType } from '../chain';
 import { getCurve } from './curves';
-import { getSodium } from './sodium';
-const sodium = getSodium();
+import nacl from 'tweetnacl';
 
 /**
  * Generate a new private key for given type.
  * @internal
  */
 export function generate(type: KeyType): Uint8Array {
+
     switch (type) {
-        case KeyType.ED: {
-            // ED25519 private key via libsodium
-            const kp = sodium.crypto_sign_keypair();
-            return kp.privateKey;
-        }
+        case KeyType.ED: // ED25519 private key via tweetnacl
+            return nacl.sign.keyPair().secretKey; // 64-byte secretKey = 32b seed + 32b pubkey
 
         default: {
             // ECDSA curves

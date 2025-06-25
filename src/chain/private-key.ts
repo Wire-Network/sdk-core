@@ -107,9 +107,9 @@ export class PrivateKey {
             private_key: PK,
         };
     }
+
     /**
      * Generate new PrivateKey.
-     * @throws If a secure random source isn't available.
      */
     static generate(type: KeyType) {
         return new PrivateKey(KeyType.from(type), new Bytes(generate(type)));
@@ -124,30 +124,39 @@ export class PrivateKey {
             throw new Error('Invalid private key length');
         }
 
+        if (type === KeyType.ED && data.length !== 64) {
+            throw new Error('Invalid private key length for ED25519');
+        }
+
         this.type = type;
         this.data = data;
     }
 
     /**
-     * Sign message digest using this key. 
-     * Supports K1, R1, EM and ED
+     * Sign a raw message or its digest.
+     * ED25519: signs the raw message.
+     * ECDSA (K1/R1/EM): signs the SHA256 digest.
      */
+    signMessage(message: BytesType) {
+        const raw = Bytes.from(message).array;
+
+        if (this.type === KeyType.ED) {
+            // ED25519: raw message
+            return Signature.from(sign(this.data.array, raw, this.type));
+        }
+
+        // K1/R1/EM: hash first
+        return this.signDigest(Checksum256.hash(message));
+    }
+
+    /** @internal */
     signDigest(digest: Checksum256Type) {
         digest = Checksum256.from(digest);
         return Signature.from(sign(this.data.array, digest.array, this.type));
     }
 
     /**
-     * Sign message using this key. 
-     * Supports K1, R1, EM and ED
-     */
-    signMessage(message: BytesType) {
-        return this.signDigest(Checksum256.hash(message));
-    }
-
-    /**
-     * Derive the shared secret between this private key and given public key. 
-     * Supports K1, R1, EM and ED
+     * Derive the shared secret between this private key and given public key.
      */
     sharedSecret(publicKey: PublicKey) {
         const shared = sharedSecret(this.data.array, publicKey.data.array, this.type);
@@ -155,8 +164,7 @@ export class PrivateKey {
     }
 
     /**
-     * Get the corresponding public key. 
-     * Supports K1, R1, EM and ED
+     * Get the corresponding public key.
      */
     toPublic() {
         const compressed = getPublic(this.data.array, this.type);
@@ -164,8 +172,7 @@ export class PrivateKey {
     }
 
     /**
-     * Return WIF representation of this private key
-     * @throws If the key type isn't K1/EM.
+     * Return WIF representation of this private key.
      */
     toWif() {
         if (this.type !== KeyType.K1 && this.type !== KeyType.EM) {
