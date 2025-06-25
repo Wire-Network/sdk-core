@@ -1,5 +1,3 @@
-// src/crypto/signature.ts
-
 import { ABIDecoder } from '../serializer/decoder';
 import { ABIEncoder } from '../serializer/encoder';
 import { ABISerializableObject } from '../serializer/serializable';
@@ -10,14 +8,23 @@ import { isInstanceOf } from '../utils';
 import { recover } from '../crypto/recover';
 import { verify } from '../crypto/verify';
 
-import { Bytes, BytesType, Checksum256, Checksum256Type, KeyType, PublicKey } from '../';
+import {
+    Bytes,
+    BytesType,
+    Checksum256,
+    Checksum256Type,
+    KeyType,
+    PublicKey,
+} from '../';
 
-export type SignatureType =
-    | Signature
-    | SignatureParts
-    | string;
+export type SignatureType = Signature | SignatureParts | string;
 
-export type SignatureParts = { type: string; r: Uint8Array; s: Uint8Array; recid: number };
+export type SignatureParts = {
+    type: string;
+    r: Uint8Array;
+    s: Uint8Array;
+    recid: number;
+};
 
 export class Signature implements ABISerializableObject {
     static abiName = 'signature';
@@ -34,10 +41,20 @@ export class Signature implements ABISerializableObject {
         }
 
         if (typeof value === 'object' && 'r' in value && 's' in value) {
+            // ED25519 is pure 64-byte r||s
+            if (value.type === KeyType.ED) {
+                const data = new Uint8Array(64);
+                data.set(value.r, 0);
+                data.set(value.s, 32);
+                return new Signature(KeyType.ED, new Bytes(data));
+            }
+
+            // everything else stays 65-byte with recid in [0]
             const data = new Uint8Array(1 + 32 + 32);
             let recid = value.recid;
             const type = KeyType.from(value.type);
 
+            // ECDSA recid offset
             if (
                 type === KeyType.K1 ||
                 type === KeyType.R1 ||
@@ -52,6 +69,7 @@ export class Signature implements ABISerializableObject {
             return new Signature(type, new Bytes(data));
         }
 
+        // string form
         if (typeof value !== 'string' || !value.startsWith('SIG_')) {
             throw new Error('Invalid signature string');
         }
@@ -63,11 +81,13 @@ export class Signature implements ABISerializableObject {
         }
 
         const type = KeyType.from(parts[1]);
-        // ECDSA signatures are 65 bytes; ED25519 signatures are 64 bytes
+        // 65 for ECDSA, 64 for ED
         const size =
-            type === KeyType.K1 || type === KeyType.R1 || type === KeyType.EM ? 65 :
-                type === KeyType.ED ? 64 :
-                    undefined;
+            type === KeyType.K1 || type === KeyType.R1 || type === KeyType.EM
+                ? 65
+                : type === KeyType.ED
+                    ? 64
+                    : undefined;
         const data = Base58.decodeRipemd160Check(parts[2], size, type);
         return new Signature(type, data);
     }
@@ -87,10 +107,9 @@ export class Signature implements ABISerializableObject {
             return new Signature(KeyType.WA, data);
         }
 
-        // Read 64 bytes for ED25519, 65 bytes for ECDSA
+        // read 64 bytes for ED, 65 for everything else
         const len = type === KeyType.ED ? 64 : 65;
-        const arr = decoder.readArray(len);
-        return new Signature(type, new Bytes(arr));
+        return new Signature(type, new Bytes(decoder.readArray(len)));
     }
 
     /** @internal */
@@ -122,8 +141,18 @@ export class Signature implements ABISerializableObject {
         return verify(this.data.array, digest.array, publicKey.data.array, this.type);
     }
 
-    /** Verify this signature with given message and public key. */
+    /**
+     * Verify this signature with given message and public key.
+     * ED25519: verifies the raw message.
+     * ECDSA (K1/R1/EM): verifies the SHA256 digest.
+     */
     verifyMessage(message: BytesType, publicKey: PublicKey): boolean {
+        const raw = Bytes.from(message).array;
+
+        if (this.type === KeyType.ED) {
+            return verify(this.data.array, raw, publicKey.data.array, this.type);
+        }
+
         return this.verifyDigest(Checksum256.hash(message), publicKey);
     }
 
