@@ -14,6 +14,9 @@ export function generate(type: KeyType): Uint8Array {
         case KeyType.ED: // ED25519 private key via tweetnacl
             return nacl.sign.keyPair().secretKey; // 64-byte secretKey = 32b seed + 32b pubkey
 
+        case KeyType.EM:
+            throw new Error('KeyType.EM is not supported for key generation.');
+
         default: {
             // ECDSA curves
             const curve = getCurve(type);

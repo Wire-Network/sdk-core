@@ -23,13 +23,7 @@ export * from './common/common-module';
 export * from './resources/index-resources';
 
 // crypto
-export * from './crypto/curves';
-export * from './crypto/generate';
-export * from './crypto/get-public';
-export * from './crypto/recover';
-export * from './crypto/shared-secret';
-export * from './crypto/sign';
-export * from './crypto/verify';
+export * as Crypto from './crypto';
 
 export * from './signing/index-signing';
 export * from './abi-cache';

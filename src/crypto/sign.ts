@@ -2,13 +2,27 @@ import { ec } from 'elliptic';
 import { getCurve } from './curves';
 import { KeyType, SignatureParts } from '../chain';
 import nacl from 'tweetnacl';
+import { ethers } from 'ethers';
 
 /**
  * Sign digest using private key.
  * @internal
  */
+/**
+ * Signs a message with a private key using various cryptographic algorithms.
+ * 
+ * @param secret - The private key as a byte array
+ * @param message - The message to sign as a byte array
+ * @param type - The type of key/signing algorithm to use (ED25519, Ethereum, or ECDSA curves)
+ * @returns A SignatureParts object containing the signature components (r, s, recid) and the key type
+ * 
+ * The function supports three types of signatures:
+ * - ED25519 (ED): Uses TweetNaCl for EdDSA signatures
+ * - Ethereum (EM): Signs using Ethereum's personal message format with ECDSA
+ * - ECDSA curves (K1, R1): Uses elliptic curve cryptography with canonical signatures
+ */
 export function sign(secret: Uint8Array, message: Uint8Array, type: KeyType): SignatureParts {
-    switch(type){
+    switch (type) {
         case KeyType.ED: { // ED25519 detached signature via tweetnacl
             const sigBytes = nacl.sign.detached(message, secret);
             const r = sigBytes.slice(0, 32);
@@ -16,7 +30,17 @@ export function sign(secret: Uint8Array, message: Uint8Array, type: KeyType): Si
             return { type, r, s, recid: 0 };
         }
 
-        default: { // ECDSA curves (K1, R1, EM)
+        case KeyType.EM: { // Ethereum signature using EIP-191 prefix
+            const hash = ethers.utils.hashMessage(message)
+            const signer = new ethers.utils.SigningKey(ethers.utils.hexlify(secret))
+            const sig = signer.signDigest(hash)
+            const r = ethers.utils.arrayify(sig.r)
+            const s = ethers.utils.arrayify(sig.s)
+            const recid = sig.recoveryParam! + 27
+            return { type, r, s, recid }
+        }
+
+        default: { // ECDSA curves (K1, R1)
             const curve = getCurve(type);
             const key = curve.keyFromPrivate(secret);
             let sig: ec.Signature;

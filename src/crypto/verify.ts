@@ -1,6 +1,7 @@
 import { getCurve } from './curves';
 import { KeyType } from '../chain';
 import nacl from 'tweetnacl';
+import { ethers } from 'ethers';
 
 /**
  * Verify signature using message and public key.
@@ -15,6 +16,12 @@ export function verify(
     switch (type) {
         case KeyType.ED: // ED25519 detached verification via tweetnacl
             return nacl.sign.detached.verify(message, signature, pubkey);
+
+        case KeyType.EM: {
+            const recovered = ethers.utils.verifyMessage(message, signature)
+            const expected = ethers.utils.computeAddress(pubkey)
+            return recovered.toLowerCase() === expected.toLowerCase()
+        }
 
         default: { // ECDSA verification using elliptic
             const curve = getCurve(type);
