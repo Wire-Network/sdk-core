@@ -5,14 +5,12 @@ import { ABISerializableObject } from '../serializer/serializable';
 import { Base58 } from '../base58';
 import { isInstanceOf } from '../utils';
 
-import { recover } from '../crypto/recover';
-import { verify } from '../crypto/verify';
-
 import {
     Bytes,
     BytesType,
     Checksum256,
     Checksum256Type,
+    Crypto,
     KeyType,
     PublicKey,
 } from '../';
@@ -126,7 +124,8 @@ export class Signature implements ABISerializableObject {
     /** Recover public key from given message digest. */
     recoverDigest(digest: Checksum256Type): PublicKey {
         digest = Checksum256.from(digest);
-        const compressed = recover(this.data.array, digest.array, this.type);
+        const compressedPubKey = Crypto.recover(this.data.array, digest.array, this.type);
+        const compressed = compressedPubKey instanceof Bytes ? compressedPubKey.array : compressedPubKey;
         return PublicKey.from({ compressed, type: this.type });
     }
 
@@ -138,7 +137,7 @@ export class Signature implements ABISerializableObject {
     /** Verify this signature with given message digest and public key. */
     verifyDigest(digest: Checksum256Type, publicKey: PublicKey): boolean {
         digest = Checksum256.from(digest);
-        return verify(this.data.array, digest.array, publicKey.data.array, this.type);
+        return Crypto.verify(this.data.array, digest.array, publicKey.data.array, this.type);
     }
 
     /**
@@ -150,7 +149,7 @@ export class Signature implements ABISerializableObject {
         const raw = Bytes.from(message).array;
 
         if (this.type === KeyType.ED) {
-            return verify(this.data.array, raw, publicKey.data.array, this.type);
+            return Crypto.verify(this.data.array, raw, publicKey.data.array, this.type);
         }
 
         return this.verifyDigest(Checksum256.hash(message), publicKey);
