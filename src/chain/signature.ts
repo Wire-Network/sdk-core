@@ -134,7 +134,7 @@ export class Signature implements ABISerializableObject {
         if (h.length !== 130) {
             throw new Error(`ECDSA/EM hex must be 130 chars, got ${h.length}`);
         }
-        
+
         const buf = Uint8Array.from(Buffer.from(h, 'hex'));
         // split off r, s, v
         const r = buf.slice(0, 32);
@@ -181,17 +181,30 @@ export class Signature implements ABISerializableObject {
 
     /**
      * Verify this signature with given message and public key.
-     * ED25519: verifies the raw message.
-     * ECDSA (K1/R1/EM): verifies the SHA256 digest.
+     * - ED25519: raw message bytes
+     * - EM (EIP-191): raw message bytes → prefix+keccak256
+     * - K1/R1: SHA-256 digest
      */
     verifyMessage(message: BytesType, publicKey: PublicKey): boolean {
         const raw = Bytes.from(message).array;
 
-        if (this.type === KeyType.ED) {
-            return Crypto.verify(this.data.array, raw, publicKey.data.array, this.type);
-        }
+        switch (this.type) {
+            case KeyType.ED:
+            case KeyType.EM:
+                // ED and EM both verify raw via Crypto.verify:
+                // - ED uses tweetnacl
+                // - EM uses ethers.utils.verifyMessage under the hood
+                return Crypto.verify(
+                    this.data.array,
+                    raw,
+                    publicKey.data.array,
+                    this.type
+                );
 
-        return this.verifyDigest(Checksum256.hash(message), publicKey);
+            default:
+                // K1/R1: sha256 digest
+                return this.verifyDigest(Checksum256.hash(message), publicKey);
+        }
     }
 
     /** Base58check encoded string representation of this signature (`SIG_<type>_<data>`). */
