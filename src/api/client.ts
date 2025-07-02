@@ -11,7 +11,7 @@ import { GetRowsOptions, TransactionExtraOptions } from './types';
 export { ChainAPI, HistoryAPI };
 import * as v1 from './v1/types';
 import * as v2 from './v2/types';
-import { ABI, Action, AnyAction, CompressionType, NameType, PackedTransaction, SignedTransaction, Transaction, UInt32Type } from '../chain';
+import { ABI, Action, AnyAction, CompressionType, KeyType, NameType, PackedTransaction, Signature, SignedTransaction, Transaction, UInt32Type } from '../chain';
 import { ethers } from 'ethers';
 import { evmSigToWire } from '../utils';
 
@@ -22,8 +22,18 @@ export interface APIClientOptions extends FetchProviderOptions {
     provider?: APIProvider;
     /** URL specifically for Hyperion API, if available */
     hyperionUrl?: string;
-    /** Optional signer function that receives a message digest (Uint8Array) and returns a signed hash (Promise<string>). */
-    signer?: (msgDigest: Uint8Array) => Promise<string>;
+    /** Optional signer function that receives a message digest (Uint8Array) and returns a signed hash bytes (Promise<Uint8Array>). */
+    signer?: SignerProvider;
+}
+export interface SignerProvider {
+    readonly keyType: KeyType;
+
+    /**
+     * Sign an arbitrary message payload.
+     * If you pass a string, it will be UTF-8 → bytes first.
+     * Returns a `Signature` object ready to go.
+     */
+    signMessage(msg: string | Uint8Array): Promise<Signature>;
 }
 
 export interface APIErrorDetail {
@@ -114,8 +124,8 @@ export class APIClient {
     readonly v1Provider: APIProvider;
     readonly v2Provider?: APIProvider;
 
-    /** Optional signer function that receives a message digest Uint8Array and returns a signed hash (Promise<string>). */
-    readonly signer?: (msgDigest: Uint8Array) => Promise<string>;
+    /** Optional signer function that receives a message digest Uint8Array and returns a signed hash (Promise<Uint8Array>). */
+    readonly signer?: SignerProvider
 
     constructor(options: APIClientOptions) {
         if (options.provider) this.v1Provider = options.provider;
@@ -266,8 +276,9 @@ export class APIClient {
 
         if (!this.signer) throw new Error('No signer function provided in APIClient options');
 
-        const eth_sig = await this.signer(messageBytes).catch(err => { throw new Error(err) });
-        const signature = evmSigToWire(eth_sig, 'EM');
+        const signature = await this.signer.signMessage(messageBytes).catch(err => { throw new Error(err) });
+        // const ethHex = ethers.utils.hexlify(ethBytes);
+        // const signature = Signature.fromHex(ethHex, KeyType.EM);
         return SignedTransaction.from({ ...transaction, signatures: [signature] });
     }
 
