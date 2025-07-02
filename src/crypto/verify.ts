@@ -18,7 +18,9 @@ export function verify(
             return nacl.sign.detached.verify(message, signature, pubkey);
 
         case KeyType.EM: {
-            const recovered = ethers.utils.verifyMessage(message, signature)
+            const sigBytes = ethers.utils.arrayify(signature);
+            const msgBytes = ethers.utils.arrayify(message);
+            const recovered = ethers.utils.verifyMessage(msgBytes, sigBytes)
             const expected = ethers.utils.computeAddress(pubkey)
             return recovered.toLowerCase() === expected.toLowerCase()
         }

@@ -124,9 +124,7 @@ export class Signature implements ABISerializableObject {
     /** Recover public key from given message digest. */
     recoverDigest(digest: Checksum256Type): PublicKey {
         digest = Checksum256.from(digest);
-        const compressedPubKey = Crypto.recover(this.data.array, digest.array, this.type);
-        const compressed = compressedPubKey instanceof Bytes ? compressedPubKey.array : compressedPubKey;
-        return PublicKey.from({ compressed, type: this.type });
+        return Crypto.recover(this.data.array, digest.array, this.type);
     }
 
     /** Recover public key from given message. */
