@@ -156,6 +156,7 @@ export function isInstanceOf<T extends { new(...args: any[]): InstanceType<T> }>
  * @param eth_sig A signature in the format of an Ethereum signature.
  * @param prefix WIRE prefix to use for the signature. K1 or EM, EM by default.
  * @returns A WIRE formatted signature.
+ * @deprecated This function will be removed in a future version. Use Signature.fromHex() instead.
  */
 export function evmSigToWire(eth_sig: string, prefix = 'EM') {
     // --- same r/s/v extraction as before ---

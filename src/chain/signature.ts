@@ -18,7 +18,7 @@ import {
 export type SignatureType = Signature | SignatureParts | string;
 
 export type SignatureParts = {
-    type: string;
+    type: KeyType;
     r: Uint8Array;
     s: Uint8Array;
     recid: number;
@@ -108,6 +108,41 @@ export class Signature implements ABISerializableObject {
         // read 64 bytes for ED, 65 for everything else
         const len = type === KeyType.ED ? 64 : 65;
         return new Signature(type, new Bytes(decoder.readArray(len)));
+    }
+
+    /** 
+     * Build a signature directly from a hex string.
+     * @param hexStr  0x-prefixed or plain hex:
+     *                  • 130 chars → K1/R1/EM (r‖s‖v) 
+     *                  • 128 chars → ED     (r‖s)
+     * @param type    KeyType.K1 | KeyType.R1 | KeyType.EM | KeyType.ED
+     */
+    static fromHex(hexStr: string, type: KeyType): Signature {
+        const h = hexStr.startsWith('0x') ? hexStr.slice(2) : hexStr;
+
+        if (type === KeyType.ED) {
+            if (h.length !== 128) throw new Error(`ED25519 hex must be 128 chars, got ${h.length}`);
+            // decode all 64 bytes at once
+            const raw = Uint8Array.from(Buffer.from(h, 'hex'));
+            return new Signature(KeyType.ED, new Bytes(raw));
+        }
+
+        // non-ED: expect 65 bytes → 130 hex chars
+        if (h.length !== 130) throw new Error(`ECDSA/EM hex must be 130 chars, got ${h.length}`);
+        const buf = Uint8Array.from(Buffer.from(h, 'hex'));
+        // split off v, r, s
+        const r = buf.slice(0, 32);
+        const s = buf.slice(32, 64);
+        let recid = buf[64];
+        // wire offset
+        recid += 31;
+
+        const arr = new Uint8Array(1 + 32 + 32);
+        arr[0] = recid;
+        arr.set(r, 1);
+        arr.set(s, 33);
+
+        return new Signature(type, new Bytes(arr));
     }
 
     /** @internal */
