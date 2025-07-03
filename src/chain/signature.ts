@@ -151,28 +151,10 @@ export class Signature implements ABISerializableObject {
         return new Signature(type, new Bytes(arr));
     }
 
-    /**
-     * Construct a Signature directly from raw wire-format bytes.
-     * @param data  The raw signature bytes:
-     *              • EM/K1/R1: 65 bytes [v+4(1)‖r(32)‖s(32)]
-     *              • ED      : 64 bytes [r(32)‖s(32)]
-     * @param type  KeyType.EM | KeyType.K1 | KeyType.R1 | KeyType.ED
-     */
-    static fromBytes(data: Uint8Array, type: KeyType): Signature {
-        // validate length
-        const expected = (type === KeyType.ED ? 64 : 65);
-
-        if (data.length !== expected) {
-            throw new Error(`Expected ${expected} bytes for ${type} signature, got ${data.length}`);
-        }
-
-        return new Signature(type, new Bytes(data));
-    }
-
     /** @internal */
-    constructor(type: KeyType, data: Bytes) {
+    constructor(type: KeyType, data: Bytes | Uint8Array) {
         this.type = type;
-        this.data = data;
+        this.data = data instanceof Bytes ? data : new Bytes(data);
     }
 
     equals(other: SignatureType): boolean {
@@ -200,39 +182,27 @@ export class Signature implements ABISerializableObject {
     /**
      * Verify this signature with given message and public key.
      * - ED25519: raw message bytes
-     * - EM (EIP-191): raw message bytes + wire→raw sig conversion
-     * - K1/R1:       SHA-256 digest
+     * - EM (EIP-191): raw message bytes → prefix+keccak256
+     * - K1/R1: SHA-256 digest
      */
     verifyMessage(message: BytesType, publicKey: PublicKey): boolean {
         const raw = Bytes.from(message).array;
 
         switch (this.type) {
             case KeyType.ED:
-                // ED25519 is already 64-byte [r||s]
-                return Crypto.verify(this.data.array, raw, publicKey.data.array, this.type);
-
-            case KeyType.EM: {
-                // --- unwrap your wire format ---
-                const wire = this.data.array;       // [v+4, r(32), s(32)]
-                const vWire = wire[0];
-                const r = wire.subarray(1, 33);
-                const s = wire.subarray(33, 65);
-
-                // compute raw Ethereum v (27 or 28)
-                const vRaw = vWire - 4;
-
-                // reassemble raw EIP-191 signature [r||s||v]
-                const sig = new Uint8Array(65);
-                sig.set(r, 0);
-                sig.set(s, 32);
-                sig[64] = vRaw;
-
-                // now let Crypto.verify handle the EIP-191 prefix + keccak256
-                return Crypto.verify(sig, raw, publicKey.data.array, KeyType.EM);
-            }
+            case KeyType.EM:
+                // ED and EM both verify raw via Crypto.verify:
+                // - ED uses tweetnacl
+                // - EM uses ethers.utils.verifyMessage under the hood
+                return Crypto.verify(
+                    this.data.array,
+                    raw,
+                    publicKey.data.array,
+                    this.type
+                );
 
             default:
-                // for K1/R1 you still want a SHA-256 digest
+                // K1/R1: sha256 digest
                 return this.verifyDigest(Checksum256.hash(message), publicKey);
         }
     }
@@ -240,6 +210,54 @@ export class Signature implements ABISerializableObject {
     /** Base58check encoded string representation of this signature (`SIG_<type>_<data>`). */
     toString(): string {
         return `SIG_${this.type}_${Base58.encodeRipemd160Check(this.data, this.type)}`;
+    }
+
+    /**
+     * Return the raw signature as a 0x‐prefixed hex string:
+     * - EM: [r||s||v] with Ethereum v (27/28)
+     * - K1/R1: [r||s||v] with secp256k1 v (0/1)
+     * - ED: [r||s] (64 bytes)
+     */
+    toHex(): string {
+        const wire = this.data.array;
+        let raw: Uint8Array;
+
+        switch (this.type) {
+            case KeyType.EM: {
+                // wire[0] = ethV + 4
+                const ethV = wire[0] - 4; // 27 or 28
+                raw = new Uint8Array(65);
+                raw.set(wire.subarray(1, 33), 0);
+                raw.set(wire.subarray(33, 65), 32);
+                raw[64] = ethV;
+                break;
+            }
+
+            case KeyType.K1 || KeyType.R1: {
+                // wire[0] = k1V + 31
+                const k1V = wire[0] - 31; // 0 or 1
+                raw = new Uint8Array(65);
+                raw.set(wire.subarray(1, 33), 0);
+                raw.set(wire.subarray(33, 65), 32);
+                raw[64] = k1V;
+                break;
+            }
+
+            case KeyType.ED: {
+                // ED is already [r||s]
+                raw = wire;
+                break;
+            }
+            
+            default:
+                throw new Error(`toHex() not supported for key type ${this.type}`);
+        }
+
+        // hex‐encode
+        const hex = Array.from(raw)
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('');
+        return '0x' + hex;
     }
 
     /** @internal */
@@ -251,54 +269,5 @@ export class Signature implements ABISerializableObject {
     /** @internal */
     toJSON(): string {
         return this.toString();
-    }
-
-    /**
-     * Return the raw signature bytes as a hex string (0x-prefixed).
-     * - EM/K1/R1: returns [r||s||v] with raw Ethereum v (27/28)
-     * - ED: returns [r||s] (64 bytes)
-     */
-    toHex(): string {
-        // Unwrap wire-format to raw bytes, then hex-encode
-        const wire = this.data.array;
-        let raw: Uint8Array;
-
-        switch (this.type) {
-            case KeyType.EM: {
-                // EM: wire[0] = v+4
-                const vRaw = wire[0] - 4;
-                raw = new Uint8Array(65);
-                raw.set(wire.subarray(1, 33), 0);
-                raw.set(wire.subarray(33, 65), 32);
-                raw[64] = vRaw;
-                break;
-            }
-
-            case KeyType.ED: {
-                // ED25519: data is already [r||s]
-                raw = wire;
-                break;
-            }
-
-            case KeyType.K1:
-            case KeyType.R1: {
-                // ECDSA K1/R1: wire[0] = v+31
-                const vRawK = wire[0] - 31;
-                raw = new Uint8Array(65);
-                raw.set(wire.subarray(1, 33), 0);
-                raw.set(wire.subarray(33, 65), 32);
-                raw[64] = vRawK;
-                break;
-            }
-
-            default:
-                throw new Error(`toHex() unsupported for key type: ${this.type}`);
-        }
-
-        // hex-encode
-        const hex = Array.from(raw)
-            .map(b => b.toString(16).padStart(2, '0'))
-            .join('');
-        return '0x' + hex;
     }
 }

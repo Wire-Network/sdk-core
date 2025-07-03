@@ -31,9 +31,9 @@ export interface SignerProvider {
     /**
      * Sign an arbitrary message payload.
      * If you pass a string, it will be UTF-8 → bytes first.
-     * Returns a `Signature` object ready to go.
+     * Returns raw sig bytes as Uint8Array.
      */
-    signMessage(msg: string | Uint8Array): Promise<Signature>;
+    signMessage(msg: string | Uint8Array): Promise<Uint8Array>;
 }
 
 export interface APIErrorDetail {
@@ -276,9 +276,9 @@ export class APIClient {
 
         if (!this.signer) throw new Error('No signer function provided in APIClient options');
 
-        const signature = await this.signer.signMessage(messageBytes).catch(err => { throw new Error(err) });
-        // const ethHex = ethers.utils.hexlify(ethBytes);
-        // const signature = Signature.fromHex(ethHex, KeyType.EM);
+        const ethBytes = await this.signer.signMessage(messageBytes).catch(err => { throw new Error(err) });
+        const ethHex = ethers.utils.hexlify(ethBytes);
+        const signature = Signature.fromHex(ethHex, KeyType.EM);
         return SignedTransaction.from({ ...transaction, signatures: [signature] });
     }
 

@@ -77,9 +77,9 @@ export class PublicKey implements ABISerializableObject {
     }
 
     /** @internal */
-    constructor(type: KeyType, data: Bytes) {
+    constructor(type: KeyType, data: Bytes | Uint8Array) {
         this.type = type;
-        this.data = data;
+        this.data = data instanceof Bytes ? data : new Bytes(data);
     }
 
     equals(other: PublicKeyType) {
