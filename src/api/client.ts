@@ -264,6 +264,9 @@ export class APIClient {
     }
 
     async buildSignedTransaction(action: AnyAction | AnyAction[], opts?: TransactionExtraOptions): Promise<SignedTransaction> {
+        if (!this.signer) throw new Error('No signer function provided in APIClient options');
+
+        const keyType = opts && opts.key_type ? opts.key_type : KeyType.EM;
         const actions = await this.anyToAction(action);
         const info = await this.v1.chain.get_info();
         const header = info.getTransactionHeader();
@@ -272,13 +275,15 @@ export class APIClient {
             context_free_actions: (opts && opts.context_free_actions) ? opts.context_free_actions : []
         });
         const digest = transaction.signingDigest(info.chain_id);
-        const messageBytes = ethers.utils.arrayify('0x' + digest.hexString);
+        // const messageBytes = keyType === KeyType.EM
+        //     ? ethers.utils.arrayify('0x' + digest.hexString) 
+        //     : digest.hexString;
 
-        if (!this.signer) throw new Error('No signer function provided in APIClient options');
+        const messageBytes = Buffer.from(digest.hexString, 'hex');
 
-        const ethBytes = await this.signer.signMessage(messageBytes).catch(err => { throw new Error(err) });
-        const ethHex = ethers.utils.hexlify(ethBytes);
-        const signature = Signature.fromHex(ethHex, KeyType.EM);
+        const sigBytes = await this.signer.signMessage(messageBytes).catch(err => { throw new Error(err) });
+        // const ethHex = ethers.utils.hexlify(ethBytes);
+        const signature = Signature.fromRaw(sigBytes, keyType);
         return SignedTransaction.from({ ...transaction, signatures: [signature] });
     }
 

@@ -357,3 +357,25 @@ export const checksum_hash = (hex: string) => {
     const buffer = Buffer.from(hex, 'hex');
     return ethers.utils.sha256(buffer);
 };
+
+/**
+ * Returns true iff `bytes` is valid UTF-8.
+ * @param {Uint8Array|ArrayBuffer|Buffer} bytes
+ */
+export const isUtf8 = (bytes) => {
+    // Ensure we have a Uint8Array
+    if (bytes instanceof ArrayBuffer) {
+        bytes = new Uint8Array(bytes);
+    } else if (Buffer.isBuffer(bytes)) {
+        bytes = new Uint8Array(bytes);
+    }
+
+    try {
+        // The `{ fatal: true }` option makes decode() throw on invalid sequences
+        const decoder = new TextDecoder('utf-8', { fatal: true });
+        decoder.decode(bytes);
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
