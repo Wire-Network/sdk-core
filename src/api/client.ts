@@ -30,10 +30,9 @@ export interface SignerProvider {
 
     /**
      * Sign an arbitrary message payload.
-     * If you pass a string, it will be UTF-8 → bytes first.
      * Returns raw sig bytes as Uint8Array.
      */
-    signMessage(msg: string | Uint8Array): Promise<Uint8Array>;
+    sign(msg: string | Uint8Array): Promise<Uint8Array>;
 }
 
 export interface APIErrorDetail {
@@ -266,23 +265,26 @@ export class APIClient {
     async buildSignedTransaction(action: AnyAction | AnyAction[], opts?: TransactionExtraOptions): Promise<SignedTransaction> {
         if (!this.signer) throw new Error('No signer function provided in APIClient options');
 
-        const keyType = opts && opts.key_type ? opts.key_type : KeyType.EM;
+        const keyType = opts && opts.key_type ? opts.key_type : this.signer.keyType;
         const actions = await this.anyToAction(action);
         const info = await this.v1.chain.get_info();
         const header = info.getTransactionHeader();
         const transaction = Transaction.from({
             ...header, actions,
-            context_free_actions: (opts && opts.context_free_actions) ? opts.context_free_actions : []
+            context_free_actions: (opts && opts.context_free_actions) ? opts.context_free_actions : [],
+            transaction_extensions: [{ type: 1, data: [] }]
         });
-        const digest = transaction.signingDigest(info.chain_id);
-        // const messageBytes = keyType === KeyType.EM
-        //     ? ethers.utils.arrayify('0x' + digest.hexString) 
-        //     : digest.hexString;
+        const msgDigest = transaction.signingDigest(info.chain_id);
+        let msgBytes: Uint8Array = msgDigest.array;
 
-        const messageBytes = Buffer.from(digest.hexString, 'hex');
+        // Handle keytype specific digest preparation
+        switch (keyType) {
+            case KeyType.EM: // Prefix with 0x and arrayify
+                msgBytes = ethers.utils.arrayify('0x' + msgDigest.hexString);
+                break;
+        }
 
-        const sigBytes = await this.signer.signMessage(messageBytes).catch(err => { throw new Error(err) });
-        // const ethHex = ethers.utils.hexlify(ethBytes);
+        const sigBytes = await this.signer.sign(msgBytes).catch(err => { throw new Error(err) });
         const signature = Signature.fromRaw(sigBytes, keyType);
         return SignedTransaction.from({ ...transaction, signatures: [signature] });
     }

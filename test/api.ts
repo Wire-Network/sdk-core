@@ -139,7 +139,6 @@ suite('api v1', function () {
         assert.instanceOf(response.account_name, Name);
         assert.equal(response.account_name, 'eosio.token');
 
-        console.log(response.code_hash);
         assert.instanceOf(response.code_hash, Checksum256);
         assert.equal(
             response.code_hash,

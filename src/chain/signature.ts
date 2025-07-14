@@ -79,13 +79,15 @@ export class Signature implements ABISerializableObject {
         }
 
         const type = KeyType.from(parts[1]);
-        // 65 for ECDSA, 64 for ED
+        // 65 for all wire-format curves (we now pad ED to 65 bytes)
         const size =
-            type === KeyType.K1 || type === KeyType.R1 || type === KeyType.EM
+            (type === KeyType.K1 ||
+                type === KeyType.R1 ||
+                type === KeyType.EM ||
+                type === KeyType.ED)
                 ? 65
-                : type === KeyType.ED
-                    ? 64
-                    : undefined;
+                : undefined;
+
         const data = Base58.decodeRipemd160Check(parts[2], size, type);
         return new Signature(type, data);
     }
@@ -105,9 +107,8 @@ export class Signature implements ABISerializableObject {
             return new Signature(KeyType.WA, data);
         }
 
-        // read 64 bytes for ED, 65 for everything else
-        const len = type === KeyType.ED ? 64 : 65;
-        return new Signature(type, new Bytes(decoder.readArray(len)));
+        const length = 65;
+        return new Signature(type, new Bytes(decoder.readArray(length)));
     }
 
     /**
@@ -121,38 +122,6 @@ export class Signature implements ABISerializableObject {
         const h = hexStr.startsWith('0x') ? hexStr.slice(2) : hexStr;
         const raw = Uint8Array.from(Buffer.from(h, 'hex'));
         return Signature.fromRaw(raw, type);
-
-        // const h = hexStr.startsWith('0x') ? hexStr.slice(2) : hexStr;
-
-        // if (type === KeyType.ED) {
-        //     if (h.length !== 128) {
-        //         throw new Error(`ED25519 hex must be 128 chars, got ${h.length}`);
-        //     }
-
-        //     // decode all 64 bytes at once
-        //     const raw = Uint8Array.from(Buffer.from(h, 'hex'));
-        //     return new Signature(KeyType.ED, new Bytes(raw));
-        // }
-
-        // // non-ED: expect 65 bytes → 130 hex chars
-        // if (h.length !== 130) {
-        //     throw new Error(`ECDSA/EM hex must be 130 chars, got ${h.length}`);
-        // }
-
-        // const buf = Uint8Array.from(Buffer.from(h, 'hex'));
-        // // split off r, s, v
-        // const r = buf.slice(0, 32);
-        // const s = buf.slice(32, 64);
-        // let recid = buf[64];
-        // // Ethereum v (27/28) → wire recid (31/32) = v + 4
-        // recid += 4;
-
-        // const arr = new Uint8Array(1 + 32 + 32);
-        // arr[0] = recid;
-        // arr.set(r, 1);
-        // arr.set(s, 33);
-
-        // return new Signature(type, new Bytes(arr));
     }
 
     /**
@@ -164,7 +133,11 @@ export class Signature implements ABISerializableObject {
         // ED25519: the raw is already [r‖s]
         if (type === KeyType.ED) {
             if (raw.length !== 64) throw new Error(`ED raw sig must be 64 bytes, got ${raw.length}`);
-            return new Signature(type, new Bytes(raw));
+            // ► pad to 65 bytes with a zero at the end:
+            const wire = new Uint8Array(65);
+            wire.set(raw, 0);
+            wire[64] = 0;
+            return new Signature(type, new Bytes(wire));
         }
 
         // ECDSA/EIP-191: raw should be 65 bytes [r‖s‖v]
@@ -204,8 +177,35 @@ export class Signature implements ABISerializableObject {
      *               - ED:       64 bytes `[r(32)‖s(32)]`
      */
     constructor(type: KeyType, data: Bytes | Uint8Array) {
+        let wire: Uint8Array;
+
+        if (type === KeyType.ED) {
+            const arr = data instanceof Bytes ? data.array : data;
+
+            if (arr.length === 64) {
+                // pad to 65 so toString() and from() agree
+                wire = new Uint8Array(65);
+                wire.set(arr, 0);
+                wire[64] = 0;
+            } else if (arr.length === 65) {
+                // already padded
+                wire = arr;
+            } else {
+                throw new Error(`ED signature must be 64 or 65 bytes, got ${arr.length}`);
+            }
+        } else {
+            // everything else: expect exactly 65 bytes already in wire-format
+            const arr = data instanceof Bytes ? data.array : data;
+            
+            if (arr.length !== 65) {
+                throw new Error(`Expected 65-byte wire format for ${type}, got ${arr.length}`);
+            }
+
+            wire = arr;
+        }
+
         this.type = type;
-        this.data = data instanceof Bytes ? data : new Bytes(data);
+        this.data = new Bytes(wire);
     }
 
     equals(other: SignatureType): boolean {
@@ -251,9 +251,11 @@ export class Signature implements ABISerializableObject {
         const rawMsg = Bytes.from(message).array;
 
         switch (this.type) {
-            case KeyType.ED:
-                // ED25519: raw `[r‖s]`
-                return Crypto.verify(this.data.array, rawMsg, publicKey.data.array, this.type);
+            case KeyType.ED: {
+                // ED25519: storage is [r||s||0], TweetNaCl needs exactly 64 bytes [r||s] - strip padded 0
+                const sig64 = this.data.array.subarray(0, 64);
+                return Crypto.verify(sig64, rawMsg, publicKey.data.array, this.type);
+            }
 
             case KeyType.EM: {
                 // 1) unwrap wire [vWire‖r‖s]
