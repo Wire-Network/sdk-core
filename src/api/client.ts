@@ -271,8 +271,7 @@ export class APIClient {
         const header = info.getTransactionHeader();
         const transaction = Transaction.from({
             ...header, actions,
-            context_free_actions: (opts && opts.context_free_actions) ? opts.context_free_actions : [],
-            transaction_extensions: [{ type: 1, data: [] }]
+            context_free_actions: (opts && opts.context_free_actions) ? opts.context_free_actions : []
         });
         const msgDigest = transaction.signingDigest(info.chain_id);
         let msgBytes: Uint8Array = msgDigest.array;
