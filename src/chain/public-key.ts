@@ -21,6 +21,8 @@ export class PublicKey implements ABISerializableObject {
 
     /** Create PublicKey object from representing types. */
     static from(value: PublicKeyType) {
+        console.log('HI FROM PUBLIC KEY FROM', value);
+        
         if (isInstanceOf(value, PublicKey)) {
             return value;
         }
@@ -106,9 +108,28 @@ export class PublicKey implements ABISerializableObject {
 
     /** @internal */
     toABI(encoder: ABIEncoder) {
+        console.log(
+            'PUBLIC KEY TO ABI',
+            this.type,
+            this.data.hexString,          // for human-readable debug
+            KeyType.indexFor(this.type)
+        );
+        // 1) variant tag
         encoder.writeByte(KeyType.indexFor(this.type));
-        encoder.writeArray(this.data.array);
+
+        // 2) raw bytes, one by one (no length prefix)
+        for (const b of this.data.array) {
+            encoder.writeByte(b);
+        }
     }
+
+    // /** @internal */
+    // toABI(encoder: ABIEncoder) {
+    //     console.log('PUBLIC KEY TO ABI', this.type, this.data.hexString, KeyType.indexFor(this.type));
+
+    //     encoder.writeByte(KeyType.indexFor(this.type));
+    //     encoder.writeArray(this.data.array);
+    // }
 
     /** @internal */
     toJSON() {

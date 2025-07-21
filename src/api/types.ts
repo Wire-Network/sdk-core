@@ -1,7 +1,7 @@
 export * as v1 from './v1/types';
 export * as v2 from './v2/types';
 
-import { ActionType, KeyType, NameType } from '../chain';
+import { ActionType, KeyType, NameType, PublicKeyType } from '../chain';
 import { TableIndexType, TableIndexTypes } from './v1/types';
 export interface GetRowsOptions {
     contract: NameType;
@@ -27,4 +27,5 @@ export type TransactionExtraOptions = {
     wait_final?: boolean;
     context_free_actions?: ActionType[];
     key_type? : KeyType
+    pubKey?: PublicKeyType
 };

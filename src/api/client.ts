@@ -11,7 +11,7 @@ import { GetRowsOptions, TransactionExtraOptions } from './types';
 export { ChainAPI, HistoryAPI };
 import * as v1 from './v1/types';
 import * as v2 from './v2/types';
-import { ABI, Action, AnyAction, CompressionType, KeyType, NameType, PackedTransaction, Signature, SignedTransaction, Transaction, UInt32Type } from '../chain';
+import { ABI, Action, AnyAction, CompressionType, KeyType, NameType, PackedTransaction, PublicKey, Signature, SignedTransaction, Transaction, TransactionExtension, UInt16, UInt32Type } from '../chain';
 import { ethers } from 'ethers';
 import { evmSigToWire } from '../utils';
 
@@ -236,6 +236,8 @@ export class APIClient {
     }
 
     async pushTransaction(action: AnyAction | AnyAction[], opts?: TransactionExtraOptions): Promise<v1.PushTransactionResponse> {
+        console.log('Pushing transaction with action:', action, opts);
+        
         if (!this.signer) throw new Error('Signer is required to push transaction');
 
         try {
@@ -263,6 +265,8 @@ export class APIClient {
     }
 
     async buildSignedTransaction(action: AnyAction | AnyAction[], opts?: TransactionExtraOptions): Promise<SignedTransaction> {
+        console.log('Building signed transaction with action:', action, opts);
+        
         if (!this.signer) throw new Error('No signer function provided in APIClient options');
 
         const keyType = opts && opts.key_type ? opts.key_type : this.signer.keyType;
@@ -276,11 +280,23 @@ export class APIClient {
         const msgDigest = transaction.signingDigest(info.chain_id);
         let msgBytes: Uint8Array = msgDigest.array;
 
+
+
         // Handle keytype specific digest preparation
         switch (keyType) {
             case KeyType.EM: // Prefix with 0x and arrayify
                 msgBytes = ethers.utils.arrayify('0x' + msgDigest.hexString);
                 break;
+
+            case KeyType.ED: {
+                if (!opts || (opts && !opts.pubKey)) throw new Error('ED signature requires a pubKey to be passed in TransactionExtraOptions');
+                const ext = TransactionExtension.from({
+                    type: UInt16.from(0x1000),
+                    data: PublicKey.from(opts.pubKey!).data
+                })
+                transaction.transaction_extensions.push(ext);
+                break;
+            }
         }
 
         const sigBytes = await this.signer.sign(msgBytes).catch(err => { throw new Error(err) });
