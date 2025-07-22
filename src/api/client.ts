@@ -265,25 +265,22 @@ export class APIClient {
     async buildSignedTransaction(action: AnyAction | AnyAction[], opts?: TransactionExtraOptions): Promise<SignedTransaction> {
         if (!this.signer) throw new Error('No signer function provided in APIClient options');
 
-        const keyType = opts && opts.key_type ? opts.key_type : this.signer.keyType;
+        const keyType = this.signer.keyType;
         const actions = await this.anyToAction(action);
         const info = await this.v1.chain.get_info();
         const header = info.getTransactionHeader();
         const transaction = Transaction.from({
             ...header, actions,
-            context_free_actions: (opts && opts.context_free_actions) ? opts.context_free_actions : [],
-            transaction_extensions: [{ type: 1, data: [] }]
+            context_free_actions: (opts && opts.context_free_actions) ? opts.context_free_actions : []
         });
-        const msgDigest = transaction.signingDigest(info.chain_id);
-        let msgBytes: Uint8Array = msgDigest.array;
 
-        // Handle keytype specific digest preparation
-        switch (keyType) {
-            case KeyType.EM: // Prefix with 0x and arrayify
-                msgBytes = ethers.utils.arrayify('0x' + msgDigest.hexString);
-                break;
+        if (keyType === KeyType.ED) {
+            const pubKey = opts && opts.pub_key;
+            if (!pubKey) throw new Error('ED signature requires a pubKey to be passed in TransactionExtraOptions');
+            transaction.extPubKey(pubKey);
         }
 
+        const { msgBytes } = transaction.signingDigest(info.chain_id, keyType);
         const sigBytes = await this.signer.sign(msgBytes).catch(err => { throw new Error(err) });
         const signature = Signature.fromRaw(sigBytes, keyType);
         return SignedTransaction.from({ ...transaction, signatures: [signature] });

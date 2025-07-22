@@ -1,7 +1,7 @@
 import pako from 'pako';
 
 import {abiEncode} from '../serializer/encoder';
-import {Signature, SignatureType} from './signature';
+import {padEdForTx, Signature, SignatureType, stripEdPad} from './signature';
 import {abiDecode} from '../serializer/decoder';
 
 import {
@@ -13,8 +13,11 @@ import {
     BytesType,
     Checksum256,
     Checksum256Type,
+    KeyType,
     Name,
     NameType,
+    PublicKey,
+    PublicKeyType,
     Struct,
     TimePointSec,
     TimePointType,
@@ -27,6 +30,7 @@ import {
     VarUInt,
     VarUIntType,
 } from '../';
+import { ethers } from 'ethers';
 
 @Struct.type('transaction_extension')
 export class TransactionExtension extends Struct {
@@ -34,6 +38,10 @@ export class TransactionExtension extends Struct {
     @Struct.field('bytes') declare data: Bytes;
 }
 
+export enum TransactionExtensionType {
+    PubKey = 0x8000,
+    // Add other extension types here as needed
+}
 export interface TransactionHeaderFields {
     /** The time at which a transaction expires. */
     expiration: TimePointType;
@@ -96,6 +104,11 @@ export interface AnyTransaction extends TransactionHeaderFields {
 
 export type TransactionType = Transaction | TransactionFields;
 
+export interface SigningDigest {
+    msgDigest : Checksum256;
+    msgBytes : Uint8Array; // Optionally formatted based on key type
+}
+
 @Struct.type('transaction')
 export class Transaction extends TransactionHeader {
     /** The context free actions in the transaction. */
@@ -151,9 +164,35 @@ export class Transaction extends TransactionHeader {
         return Checksum256.hash(abiEncode({object: this}));
     }
 
-    signingDigest(chainId: Checksum256Type): Checksum256 {
+    /**
+     * Computes the signing digest and message bytes for this transaction.
+     *
+     * @param chainId - The chain ID to use for the signing digest.
+     * @param keyType - (Optional) The key type of the signer. If provided, the message bytes (`msgBytes`)
+     *   are formatted according to the expected format for the given key type.
+     *   - For `KeyType.EM`, the digest is prefixed with `0x` and arrayified.
+     *   - For `KeyType.ED`, the digest's hex string is encoded as UTF-8 bytes.
+     *   - If not provided, the default digest bytes are used.
+     * @returns An object containing the signing digest (`msgDigest`) and the formatted message bytes (`msgBytes`).
+     */
+    signingDigest(chainId: Checksum256Type, keyType?: KeyType): SigningDigest {
         const data = this.signingData(chainId);
-        return Checksum256.hash(data);
+        const msgDigest = Checksum256.hash(data);
+        const msgDigestHex = msgDigest.hexString.toLowerCase();
+        let msgBytes: Uint8Array = msgDigest.array;
+
+        // Prepare custom msgBytes based on key type
+        switch (keyType) {
+            case KeyType.EM: // Prefix with 0x and arrayify
+                msgBytes = ethers.utils.arrayify('0x' + msgDigestHex);
+                break;
+
+            case KeyType.ED: // Encode as UTF-8 bytes for Phantom signing
+                msgBytes = new TextEncoder().encode(msgDigestHex);
+                break;
+        }
+
+        return { msgDigest, msgBytes };
     }
 
     signingData(chainId: Checksum256Type): Bytes {
@@ -161,6 +200,24 @@ export class Transaction extends TransactionHeader {
         data = data.appending(abiEncode({object: this}));
         data = data.appending(new Uint8Array(32));
         return data;
+    }
+
+    extPubKey(pubKeys: PublicKeyType | PublicKeyType[]) {
+        if (!Array.isArray(pubKeys)) pubKeys = [pubKeys];
+
+        for (const pkey of pubKeys) {
+            const pubKey = PublicKey.from(pkey);
+            const rawKey = pubKey.data.array;
+            const keyTypeTag = KeyType.indexFor(pubKey.type);
+            const tag = Uint8Array.from([keyTypeTag]);
+            
+            const ext = TransactionExtension.from({
+                type: TransactionExtensionType.PubKey,
+                data: Buffer.concat([tag, rawKey]),
+            });
+            
+            this.transaction_extensions.push(ext);
+        }
     }
 }
 
@@ -234,6 +291,9 @@ export class PackedTransaction extends Struct {
     }
 
     static fromSigned(signed: SignedTransaction, compression: CompressionType = 1) {
+        // Pad ED sigs to 65 bytes, return unmodified K1/R1/EM sigs
+        const wireSigs = signed.signatures.map(padEdForTx);
+
         // Encode data
         let packed_trx: Bytes = abiEncode({object: Transaction.from(signed)});
         let packed_context_free_data: Bytes = abiEncode({
@@ -256,7 +316,7 @@ export class PackedTransaction extends Struct {
 
         return this.from({
             compression,
-            signatures: signed.signatures,
+            signatures: wireSigs,
             packed_context_free_data,
             packed_trx,
         }) as PackedTransaction;
@@ -286,11 +346,11 @@ export class PackedTransaction extends Struct {
         // TODO: decode context free data
         return SignedTransaction.from({
             ...transaction,
-            signatures: this.signatures,
+            signatures: this.signatures.map(stripEdPad),
         });
     }
 }
-
+    
 @Struct.type('transaction_receipt')
 export class TransactionReceipt extends Struct {
     @Struct.field('string') declare status: string;

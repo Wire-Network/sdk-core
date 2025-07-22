@@ -719,7 +719,7 @@ export class SigningRequest {
 
             if (array.byteLength > deflated.byteLength) {
                 header |= 1 << 7;
-                array = deflated;
+                array = deflated as any;
             }
         }
 
@@ -1292,7 +1292,7 @@ export class ResolvedSigningRequest {
     }
 
     public get signingDigest(): Checksum256 {
-        return this.transaction.signingDigest(this.chainId);
+        return this.transaction.signingDigest(this.chainId).msgDigest;
     }
 
     public get signingData(): Bytes {
@@ -1485,7 +1485,7 @@ export class IdentityProof extends Struct {
      * Recover the public key that signed this proof.
      */
     recover(): PublicKey {
-        return this.signature.recoverDigest(this.transaction.signingDigest(this.chainId));
+        return this.signature.recoverDigest(this.transaction.signingDigest(this.chainId).msgDigest);
     }
 
     /**

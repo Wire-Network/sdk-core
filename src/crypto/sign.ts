@@ -5,10 +5,6 @@ import nacl from 'tweetnacl';
 import { ethers } from 'ethers';
 
 /**
- * Sign digest using private key.
- * @internal
- */
-/**
  * Signs a message with a private key using various cryptographic algorithms.
  * 
  * @param secret - The private key as a byte array

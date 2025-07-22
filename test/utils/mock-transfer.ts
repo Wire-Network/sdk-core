@@ -47,7 +47,7 @@ export async function signMockTransaction(
 ): Promise<SignedTransaction> {
     // Load private key and create signature for transaction
     const privateKey = PrivateKey.from('5JW71y3njNNVf9fiGaufq8Up5XiGk68jZ5tYhKpy69yyU9cr7n9');
-    const signature = privateKey.signDigest(transaction.signingDigest(info.chain_id));
+    const signature = privateKey.signDigest(transaction.signingDigest(info.chain_id).msgDigest);
     // Form and return signedTransaction object
     const signedTransaction = SignedTransaction.from({
         ...transaction,

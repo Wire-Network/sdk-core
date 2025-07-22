@@ -27,16 +27,12 @@ export type SignatureParts = {
 export class Signature implements ABISerializableObject {
     static abiName = 'signature';
 
-    /** Type, e.g. `K1` or `ED` */
     type: KeyType;
-    /** Signature data. */
     data: Bytes;
 
     /** Create Signature object from representing types. */
     static from(value: SignatureType): Signature {
-        if (isInstanceOf(value, Signature)) {
-            return value;
-        }
+        if (isInstanceOf(value, Signature)) return value;
 
         if (typeof value === 'object' && 'r' in value && 's' in value) {
             // ED25519 is pure 64-byte r||s
@@ -79,16 +75,14 @@ export class Signature implements ABISerializableObject {
         }
 
         const type = KeyType.from(parts[1]);
-        // 65 for all wire-format curves (we now pad ED to 65 bytes)
-        const size =
-            (type === KeyType.K1 ||
-                type === KeyType.R1 ||
-                type === KeyType.EM ||
-                type === KeyType.ED)
+        // 65 for ECDSA, 64 for ED
+        const length =
+            type === KeyType.K1 || type === KeyType.R1 || type === KeyType.EM
                 ? 65
-                : undefined;
-
-        const data = Base58.decodeRipemd160Check(parts[2], size, type);
+                : type === KeyType.ED
+                    ? 64
+                    : undefined;
+        const data = Base58.decodeRipemd160Check(parts[2], length, type);
         return new Signature(type, data);
     }
 
@@ -107,8 +101,9 @@ export class Signature implements ABISerializableObject {
             return new Signature(KeyType.WA, data);
         }
 
-        const length = 65;
-        return new Signature(type, new Bytes(decoder.readArray(length)));
+        const length = (type === KeyType.ED) ? 64 : 65;
+        const bytes = decoder.readArray(length);
+        return new Signature(type, new Bytes(bytes));
     }
 
     /**
@@ -133,11 +128,7 @@ export class Signature implements ABISerializableObject {
         // ED25519: the raw is already [r‖s]
         if (type === KeyType.ED) {
             if (raw.length !== 64) throw new Error(`ED raw sig must be 64 bytes, got ${raw.length}`);
-            // ► pad to 65 bytes with a zero at the end:
-            const wire = new Uint8Array(65);
-            wire.set(raw, 0);
-            wire[64] = 0;
-            return new Signature(type, new Bytes(wire));
+            return new Signature(type, new Bytes(raw));
         }
 
         // ECDSA/EIP-191: raw should be 65 bytes [r‖s‖v]
@@ -177,35 +168,8 @@ export class Signature implements ABISerializableObject {
      *               - ED:       64 bytes `[r(32)‖s(32)]`
      */
     constructor(type: KeyType, data: Bytes | Uint8Array) {
-        let wire: Uint8Array;
-
-        if (type === KeyType.ED) {
-            const arr = data instanceof Bytes ? data.array : data;
-
-            if (arr.length === 64) {
-                // pad to 65 so toString() and from() agree
-                wire = new Uint8Array(65);
-                wire.set(arr, 0);
-                wire[64] = 0;
-            } else if (arr.length === 65) {
-                // already padded
-                wire = arr;
-            } else {
-                throw new Error(`ED signature must be 64 or 65 bytes, got ${arr.length}`);
-            }
-        } else {
-            // everything else: expect exactly 65 bytes already in wire-format
-            const arr = data instanceof Bytes ? data.array : data;
-            
-            if (arr.length !== 65) {
-                throw new Error(`Expected 65-byte wire format for ${type}, got ${arr.length}`);
-            }
-
-            wire = arr;
-        }
-
         this.type = type;
-        this.data = new Bytes(wire);
+        this.data = data instanceof Bytes ? data : new Bytes(data);
     }
 
     equals(other: SignatureType): boolean {
@@ -251,11 +215,9 @@ export class Signature implements ABISerializableObject {
         const rawMsg = Bytes.from(message).array;
 
         switch (this.type) {
-            case KeyType.ED: {
-                // ED25519: storage is [r||s||0], TweetNaCl needs exactly 64 bytes [r||s] - strip padded 0
-                const sig64 = this.data.array.subarray(0, 64);
-                return Crypto.verify(sig64, rawMsg, publicKey.data.array, this.type);
-            }
+            case KeyType.ED:
+                // ED25519: raw `[r‖s]`
+                return Crypto.verify(this.data.array, rawMsg, publicKey.data.array, this.type);
 
             case KeyType.EM: {
                 // 1) unwrap wire [vWire‖r‖s]
@@ -306,7 +268,9 @@ export class Signature implements ABISerializableObject {
                 break;
             }
 
-            case KeyType.K1 || KeyType.R1: {
+            case KeyType.K1:
+            // eslint-disable-next-line padding-line-between-statements, no-fallthrough
+            case KeyType.R1: {
                 // wire[0] = k1V + 31
                 const k1V = wire[0] - 31; // 0 or 1
                 raw = new Uint8Array(65);
@@ -343,4 +307,37 @@ export class Signature implements ABISerializableObject {
     toJSON(): string {
         return this.toString();
     }
+}
+
+/**
+ * Pads an ED25519 signature for transaction wire-format.
+ * @param sig - The presumed 64 byte r|s signature to pad.
+ * @returns The padded 65 byte signature used for wire transactions.
+ */
+export function padEdForTx(sig: Signature): Signature {
+    if (sig.type !== KeyType.ED) return sig;
+    const arr = sig.data.array;
+    if (arr.length === 65) return sig;
+    if (arr.length !== 64) throw new Error(`ED sig must be 64 or 65, got ${arr.length}`);
+    const padded = new Uint8Array(65);
+    padded.set(arr, 0);
+    padded[64] = 0;
+
+    return new Signature(KeyType.ED, new Bytes(padded));
+}
+
+/**
+ * Strips the ED25519 padding from a signature.
+ * @param sig - The signature to strip.
+ * @returns The stripped signature.
+ */
+export function stripEdPad(sig: Signature): Signature {
+    if (sig.type !== KeyType.ED) return sig;
+    const a = sig.data.array;
+
+    if (a.length === 65 && a[64] === 0) {
+        return new Signature(KeyType.ED, a.subarray(0, 64));
+    }
+
+    return sig;
 }

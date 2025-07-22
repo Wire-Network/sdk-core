@@ -462,8 +462,8 @@ suite('chain', function () {
         const chainId = Checksum256.from(
             '2a02a0053e5a8cf73a56ba0fda11e4d92e0238a4a2aa74fccf46d5a910746840'
         );
-        const digest1 = transaction.signingDigest(chainId);
-        const digest2 = transaction.signingDigest(chainId.toString());
+        const digest1 = transaction.signingDigest(chainId).msgDigest;
+        const digest2 = transaction.signingDigest(chainId.toString()).msgDigest;
         assert.equal(digest1.equals(digest2), true);
         assert.equal(digest1.toString(), digest2.toString());
     });

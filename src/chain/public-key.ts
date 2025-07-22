@@ -101,6 +101,12 @@ export class PublicKey implements ABISerializableObject {
 
     /** Return key in modern Antelope/EOSIO format (`PUB_<type>_<base58data>`) */
     toString() {
+        // Ensure the key is compressed
+        if ((this.type === KeyType.K1 || this.type === KeyType.R1 || this.type === KeyType.EM) &&
+            this.data.array.length !== 33) {
+            throw new Error(`Expected 33-byte compressed key for ${this.type}, got ${this.data.array.length}`);
+        }
+
         return `PUB_${this.type}_${Base58.encodeRipemd160Check(this.data, this.type)}`;
     }
 

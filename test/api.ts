@@ -447,7 +447,7 @@ suite('api v1', function () {
             actions: [action],
         });
         const privateKey = PrivateKey.from('5JW71y3njNNVf9fiGaufq8Up5XiGk68jZ5tYhKpy69yyU9cr7n9');
-        const signature = privateKey.signDigest(transaction.signingDigest(info.chain_id));
+        const signature = privateKey.signDigest(transaction.signingDigest(info.chain_id).msgDigest);
         const signedTransaction = SignedTransaction.from({
             ...transaction,
             signatures: [signature],
@@ -480,7 +480,7 @@ suite('api v1', function () {
             actions: [action],
         });
         const privateKey = PrivateKey.from('5JW71y3njNNVf9fiGaufq8Up5XiGk68jZ5tYhKpy69yyU9cr7n9');
-        const signature = privateKey.signDigest(transaction.signingDigest(info.chain_id));
+        const signature = privateKey.signDigest(transaction.signingDigest(info.chain_id).msgDigest);
         const signedTransaction = SignedTransaction.from({
             ...transaction,
             signatures: [signature],
@@ -513,7 +513,7 @@ suite('api v1', function () {
             actions: [action],
         });
         const privateKey = PrivateKey.from('5JW71y3njNNVf9fiGaufq8Up5XiGk68jZ5tYhKpy69yyU9cr7n9');
-        const signature = privateKey.signDigest(transaction.signingDigest(info.chain_id));
+        const signature = privateKey.signDigest(transaction.signingDigest(info.chain_id).msgDigest);
         const signedTransaction = SignedTransaction.from({
             ...transaction,
             signatures: [signature],
@@ -553,7 +553,7 @@ suite('api v1', function () {
             actions: [action],
         });
         const privateKey = PrivateKey.from('5JW71y3njNNVf9fiGaufq8Up5XiGk68jZ5tYhKpy69yyU9cr7n9');
-        const signature = privateKey.signDigest(transaction.signingDigest(info.chain_id));
+        const signature = privateKey.signDigest(transaction.signingDigest(info.chain_id).msgDigest);
         const signedTransaction = SignedTransaction.from({
             ...transaction,
             signatures: [signature],
@@ -869,7 +869,7 @@ suite('api v1', function () {
             actions: [action],
         });
         const privateKey = PrivateKey.from('5JW71y3njNNVf9fiGaufq8Up5XiGk68jZ5tYhKpy69yyU9cr7n9');
-        const signature = privateKey.signDigest(transaction.signingDigest(info.chain_id));
+        const signature = privateKey.signDigest(transaction.signingDigest(info.chain_id).msgDigest);
         const signedTransaction = SignedTransaction.from({
             ...transaction,
             signatures: [signature],
