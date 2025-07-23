@@ -1,14 +1,5 @@
-import {APIMethods} from './client';
-
-type Fetch = (input: any, init?: any) => Promise<any>;
-
-/** Response to an API call.  */
-export interface APIResponse {
-    json?: any;
-    text: string;
-    status: number;
-    headers: Record<string, string>;
-}
+import { Fetch } from '../common/types';
+import { APIMethods, APIResponse } from './client';
 
 export interface APIProvider {
     /**
@@ -17,7 +8,7 @@ export interface APIProvider {
      * @argument path The endpoint path, e.g. `/v1/chain/get_info`
      * @argument params The request body if any.
      */
-    call(args: {path: string; params?: unknown; method?: APIMethods}): Promise<APIResponse>;
+    call(args: { path: string; params?: unknown; method?: APIMethods }): Promise<APIResponse>;
 }
 
 export interface FetchProviderOptions {
@@ -69,38 +60,38 @@ export class FetchProvider implements APIProvider {
         const method = args.method || 'POST';
         let url = this.url + args.path;
         const headers = { ...this.headers, ...args.headers };
-    
+
         // Filter out undefined, null, and empty string values
         const params = args.params
             ? Object.entries(args.params)
-                  .filter(([_, value]) => value != null && value !== '')
-                  .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {})
+                .filter(([_, value]) => value != null && value !== '')
+                .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {})
             : {};
-    
+
         let body: string | undefined;
-        
+
         // If GET method, convert params to query string
         if (method === 'GET' && Object.keys(params).length > 0) {
             url += '?' + new URLSearchParams(params as Record<string, string>).toString();
         } else if (Object.keys(params).length > 0) {
             body = JSON.stringify(params);
         }
-    
+
         const response = await this.fetch(url, {
             method,
             body: method === 'GET' ? undefined : body,
             headers,
         });
-    
+
         const text = await response.text();
         let json: any;
-    
+
         try {
             json = JSON.parse(text);
         } catch {
             // Ignore JSON parse errors
         }
-    
+
         return { headers: Object.fromEntries(response.headers.entries()), status: response.status, json, text };
     }
 }

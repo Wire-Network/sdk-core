@@ -1,17 +1,17 @@
 import fetch from 'node-fetch';
-import {join as joinPath} from 'path';
-import {promisify} from 'util';
-import {readFile as _readFile, writeFile as _writeFile} from 'fs';
+import { join as joinPath } from 'path';
+import { promisify } from 'util';
+import { readFile as _readFile, writeFile as _writeFile } from 'fs';
 
 const readFile = promisify(_readFile);
 const writeFile = promisify(_writeFile);
 
-import {APIMethods, APIProvider, Bytes, Checksum160, FetchProvider} from '$lib';
+import { APIMethods, APIProvider, Bytes, Checksum160, FetchProvider } from '$lib';
 
 export class MockProvider implements APIProvider {
-    recordProvider = new FetchProvider(this.api, {fetch, headers: this.reqHeaders});
+    recordProvider = new FetchProvider(this.api, { fetch, headers: this.reqHeaders });
 
-    constructor(private api: string = 'https://jungle4.greymass.com', private reqHeaders = {}) {}
+    constructor(private api: string = 'https://jungle4.greymass.com', private reqHeaders = {}) { }
 
     getFilename(path: string, params?: unknown) {
         const digest = Checksum160.hash(
@@ -31,7 +31,7 @@ export class MockProvider implements APIProvider {
         }
     }
 
-    async call(args: {path: string; params?: Record<string, unknown> | undefined; method?: APIMethods}) {
+    async call(args: { path: string; params?: Record<string, unknown> | undefined; method?: APIMethods }) {
         const filename = this.getFilename(args.path, args.params);
 
         if (process.env['MOCK_RECORD'] !== 'overwrite') {

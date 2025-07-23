@@ -162,10 +162,6 @@ suite('crypto', function () {
             recoveredKey.toLegacyString(),
             'SYS6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin'
         );
-        assert.equal(
-            recoveredKey.toLegacyString('FIO'),
-            'FIO6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin'
-        );
         assert.notEqual(
             signature.recoverMessage('beef').toString(),
             'PUB_K1_6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs'

@@ -1,8 +1,9 @@
 export * as v1 from './v1/types';
 export * as v2 from './v2/types';
 
-import { ActionType, KeyType, NameType, PublicKeyType } from '../chain';
+import { ActionType, NameType, PublicKeyType } from '../chain';
 import { TableIndexType, TableIndexTypes } from './v1/types';
+
 export interface GetRowsOptions {
     contract: NameType;
     scope?: NameType;

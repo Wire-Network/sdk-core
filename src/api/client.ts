@@ -1,4 +1,4 @@
-import { APIProvider, APIResponse, FetchProvider, FetchProviderOptions } from './provider';
+import { APIProvider, FetchProvider, FetchProviderOptions } from './provider';
 import { ABISerializableConstructor, ABISerializableType } from '../serializer/serializable';
 import { abiDecode } from '../serializer/decoder';
 import { ChainAPI } from './v1/chain';
@@ -9,11 +9,9 @@ import { StateAPIv2 } from './v2/state';
 import { StatsAPIv2 } from './v2/stats';
 import { GetRowsOptions, TransactionExtraOptions } from './types';
 export { ChainAPI, HistoryAPI };
-import * as v1 from './v1/types';
-import * as v2 from './v2/types';
 import { ABI, Action, AnyAction, CompressionType, KeyType, NameType, PackedTransaction, Signature, SignedTransaction, Transaction, UInt32Type } from '../chain';
-import { ethers } from 'ethers';
-import { evmSigToWire } from '../utils';
+import { SignerProvider } from '../signing/signer-provider';
+import * as v1 from './v1/types';
 
 export interface APIClientOptions extends FetchProviderOptions {
     /** URL to the API node to use, only used if the provider option is not set. */
@@ -25,16 +23,6 @@ export interface APIClientOptions extends FetchProviderOptions {
     /** Optional signer function that receives a message digest (Uint8Array) and returns a signed hash bytes (Promise<Uint8Array>). */
     signer?: SignerProvider;
 }
-export interface SignerProvider {
-    readonly keyType: KeyType;
-
-    /**
-     * Sign an arbitrary message payload.
-     * Returns raw sig bytes as Uint8Array.
-     */
-    sign(msg: string | Uint8Array): Promise<Uint8Array>;
-}
-
 export interface APIErrorDetail {
     message: string;
     file: string;
@@ -50,6 +38,14 @@ export interface APIErrorData {
 }
 
 export type APIMethods = 'POST' | 'GET';
+
+/** Response to an API call.  */
+export interface APIResponse {
+    json?: any;
+    text: string;
+    status: number;
+    headers: Record<string, string>;
+}
 
 export class APIError extends Error {
     static __className = 'APIError';
@@ -123,8 +119,8 @@ export class APIClient {
     readonly v1Provider: APIProvider;
     readonly v2Provider?: APIProvider;
 
-    /** Optional signer function that receives a message digest Uint8Array and returns a signed hash (Promise<Uint8Array>). */
-    readonly signer?: SignerProvider
+    private _signer?: SignerProvider
+    get signer() { return this._signer; }
 
     constructor(options: APIClientOptions) {
         if (options.provider) this.v1Provider = options.provider;
@@ -134,7 +130,7 @@ export class APIClient {
         if (options.hyperionUrl && options.hyperionUrl != '')
             this.v2Provider = new FetchProvider(options.hyperionUrl, options);
 
-        if (options.signer) this.signer = options.signer;
+        if (options.signer) this._signer = options.signer;
     }
 
     v1 = {
@@ -194,6 +190,9 @@ export class APIClient {
         return response.json || response.text;
     }
 
+    setSigner(signer: SignerProvider) {
+        this._signer = signer;
+    }
 
     /**
      * Fetches rows based on the provided options.
@@ -217,7 +216,7 @@ export class APIClient {
                 scope: options.scope !== undefined ? options.scope : options.contract,
                 table: options.table,
                 index_position: options.index_position,
-                limit: options.limit != null ? options.limit : DEFAULT_LIMIT,
+                limit: options.limit != null ? options.limit : 50,
                 lower_bound: options.lower_bound as any,
                 upper_bound: options.upper_bound as any,
                 key_type: options.key_type,
@@ -302,6 +301,7 @@ export class APIClient {
 
         return actions;
     }
+
     /**
      * Waits until the specified block number is irreversible.
      * @param blocknum The block number to wait for.
@@ -339,5 +339,3 @@ export class APIClient {
         }
     }
 }
-
-export const DEFAULT_LIMIT = 50
