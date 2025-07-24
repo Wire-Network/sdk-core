@@ -264,7 +264,7 @@ export class APIClient {
     async buildSignedTransaction(action: AnyAction | AnyAction[], opts?: TransactionExtraOptions): Promise<SignedTransaction> {
         if (!this.signer) throw new Error('No signer function provided in APIClient options');
 
-        const keyType = this.signer.keyType;
+        const keyType = this.signer.pubKey.type;
         const actions = await this.anyToAction(action);
         const info = await this.v1.chain.get_info();
         const header = info.getTransactionHeader();
@@ -273,11 +273,8 @@ export class APIClient {
             context_free_actions: (opts && opts.context_free_actions) ? opts.context_free_actions : []
         });
 
-        if (keyType === KeyType.ED) {
-            const pubKey = opts && opts.pub_key;
-            if (!pubKey) throw new Error('ED signature requires a pubKey to be passed in TransactionExtraOptions');
-            transaction.extPubKey(pubKey);
-        }
+        // If ED signer, add the public key to the transaction extensions
+        if (keyType === KeyType.ED) transaction.extPubKey(this.signer.pubKey);
 
         const { msgBytes } = transaction.signingDigest(info.chain_id, keyType);
         const sigBytes = await this.signer.sign(msgBytes).catch(err => { throw new Error(err) });

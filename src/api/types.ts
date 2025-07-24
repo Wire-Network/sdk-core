@@ -27,5 +27,4 @@ export interface GetRowsOptions {
 export type TransactionExtraOptions = {
     wait_final?: boolean;
     context_free_actions?: ActionType[];
-    pub_key?: PublicKeyType
 };
