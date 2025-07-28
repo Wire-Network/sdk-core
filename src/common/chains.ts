@@ -1,10 +1,9 @@
 import {
-    API,
     Checksum256,
     Checksum256Type
 } from '../';
 import { Logo } from './logo';
-import type { LogoType, ChainDefinitionType } from './types';
+import type { ChainDefinitionType, LogoType } from './types';
 
 export interface ChainDefinitionArgs {
     id: Checksum256Type;
@@ -75,7 +74,7 @@ export class ChainDefinition {
 }
 
 // ----------------------------------------------------------------------------
-// Your four built-in Wire networks
+// built-in Wire networks
 // ----------------------------------------------------------------------------
 
 export namespace Chains {
@@ -112,16 +111,5 @@ export namespace Chains {
         namespace: 'eosio',
         coreSymbol: 'EOS',
         logo: '../assets/logos/wire.png'
-    });
-
-    export const TESTNET_CLASSIC = ChainDefinition.from({
-        id: '3523eca96f08c0dd978f0bd527f64cd4327ab7ffce00d11daf97d0986a3f02b6',
-        name: 'Wire Classic Testnet',
-        endpoint: 'https://val1.wire.foundation',
-        hyperion: 'https://hyperion.wire.foundation',
-        websocket: 'ws://val1.wire.foundation:8080',
-        namespace: 'eosio',
-        coreSymbol: 'EOS',
-        logo: '../assets/logos/wire-classic-testnet.png'
     });
 }
