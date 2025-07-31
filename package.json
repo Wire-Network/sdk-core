@@ -1,7 +1,7 @@
 {
     "name": "@wireio/core",
     "description": "Library for working with Wire powered blockchains.",
-    "version": "0.2.3",
+    "version": "0.2.4",
     "homepage": "https://github.com/Wire-Network/sdk-core",
     "license": "FSL-1.1-Apache-2.0",
     "main": "lib/core.js",
