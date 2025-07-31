@@ -2,15 +2,41 @@ import { SignerProvider } from "../signing/signer-provider";
 
 export enum Curve {
     EC = 'EC',
-    ED = 'ED'
+    ED = 'ED'   
 }
 
-export type SolanaCluster = 'devnet' | 'testnet' | 'mainnet-beta' | 'wire-testnet';
+export enum SolChainID {
+    Devnet = 'devnet',
+    Testnet = 'testnet',
+    Mainnet = 'mainnet-beta',
+    WireTestnet = 'wire-testnet'
+}
 
-export type EcProviderType = 'metamask' | 'walletconnect' | 'coinbasewallet';
-export type EdProviderType = 'phantom' | 'solflare';  // …plus 'sui' later
-export type ProviderType = EcProviderType | EdProviderType;
+export enum EvmChainID {
+    Ethereum = 1,
+    Sepolia = 11155111,
+    Polygon = 137,
+    WireTestnet = 1122334455
+}
 
+export type ChainID = SolChainID | EvmChainID;
+
+export enum ProviderType {
+    Metamask = 'metamask',
+    WalletConnect = 'walletconnect',
+    CoinbaseWallet = 'coinbasewallet',
+    Phantom = 'phantom',
+    Solflare = 'solflare'
+}
+
+export type EcProviderTypes = 
+    ProviderType.Metamask | 
+    ProviderType.WalletConnect |
+    ProviderType.CoinbaseWallet;
+
+export type EdProviderTypes = 
+    ProviderType.Phantom | 
+    ProviderType.Solflare;
 
 export interface WalletConnections {
     [Curve.EC]?: WalletConnection;
@@ -19,7 +45,7 @@ export interface WalletConnections {
 
 export interface WalletConnection {
     address: string;
-    chainId: number | SolanaCluster | string;
+    chainId: ChainID;
     curve: Curve;
     providerType: ProviderType;
     signer: SignerProvider;
@@ -27,7 +53,7 @@ export interface WalletConnection {
 
 export interface ExternalNetwork {
     name: string;
-    chainId: number | SolanaCluster; // For EVM: numeric chain ID; for Solana: a cluster name (e.g., "devnet")
+    chainId: ChainID; 
     curve: Curve;
     rpcUrls: string[];
     blockExplorerUrls: string[];
@@ -40,4 +66,3 @@ export interface ExternalNetwork {
     alchemyId?: string;
 }
 
- 
