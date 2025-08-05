@@ -14,6 +14,7 @@ export enum SolChainID {
 
 export enum EvmChainID {
     Ethereum = 1,
+    Hoodi = 560048,
     Sepolia = 11155111,
     Polygon = 137,
     WireTestnet = 1122334455
@@ -29,12 +30,12 @@ export enum ProviderType {
     Solflare = 'solflare'
 }
 
-export type EcProviderTypes = 
+export type EcProviderType = 
     ProviderType.Metamask | 
     ProviderType.WalletConnect |
     ProviderType.CoinbaseWallet;
 
-export type EdProviderTypes = 
+export type EdProviderType = 
     ProviderType.Phantom | 
     ProviderType.Solflare;
 
