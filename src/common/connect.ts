@@ -27,7 +27,8 @@ export enum ProviderType {
     WalletConnect = 'walletconnect',
     CoinbaseWallet = 'coinbasewallet',
     Phantom = 'phantom',
-    Solflare = 'solflare'
+    Solflare = 'solflare',
+    Backpack = 'backpack'
 }
 
 export type EcProviderType = 
@@ -37,7 +38,8 @@ export type EcProviderType =
 
 export type EdProviderType = 
     ProviderType.Phantom | 
-    ProviderType.Solflare;
+    ProviderType.Solflare | 
+    ProviderType.Backpack;
 
 export interface WalletConnections {
     [Curve.EC]?: WalletConnection;
