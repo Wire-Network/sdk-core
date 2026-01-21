@@ -17,6 +17,7 @@
         "src/*"
     ],
     "scripts": {
+        "dev": "rollup -c rollup.config.mjs --watch",
         "prepare": "make",
         "lib": "make lib",
         "test": "make test",
