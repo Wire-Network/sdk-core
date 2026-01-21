@@ -23,20 +23,24 @@ export enum EvmChainID {
 export type ChainID = SolChainID | EvmChainID;
 
 export enum ProviderType {
-    Window = 'window',
+    Metamask = 'metamask',
+    BraveWalletEth = 'bravewalleteth',
     WalletConnect = 'walletconnect',
     CoinbaseWallet = 'coinbasewallet',
+    BraveWalletSol = 'bravewalletsol',
     Phantom = 'phantom',
     Solflare = 'solflare',
     Backpack = 'backpack'
 }
 
 export type EcProviderType = 
-    ProviderType.Window |
+    ProviderType.Metamask |
+    ProviderType.BraveWalletEth |
     ProviderType.WalletConnect |
     ProviderType.CoinbaseWallet;
 
 export type EdProviderType = 
+    ProviderType.BraveWalletSol |
     ProviderType.Phantom | 
     ProviderType.Solflare | 
     ProviderType.Backpack;
