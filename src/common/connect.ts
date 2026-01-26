@@ -2,7 +2,7 @@ import { SignerProvider } from "../signing/signer-provider";
 
 export enum Curve {
     EC = 'EC',
-    ED = 'ED'   
+    ED = 'ED'
 }
 
 export enum SolChainID {
@@ -30,20 +30,22 @@ export enum ProviderType {
     BraveWalletSol = 'bravewalletsol',
     Phantom = 'phantom',
     Solflare = 'solflare',
-    Backpack = 'backpack'
+    Backpack = 'backpack',
+    SquadsX = 'squadsx',
 }
 
-export type EcProviderType = 
+export type EcProviderType =
     ProviderType.Metamask |
     ProviderType.BraveWalletEth |
     ProviderType.WalletConnect |
     ProviderType.CoinbaseWallet;
 
-export type EdProviderType = 
+export type EdProviderType =
     ProviderType.BraveWalletSol |
-    ProviderType.Phantom | 
-    ProviderType.Solflare | 
-    ProviderType.Backpack;
+    ProviderType.Phantom |
+    ProviderType.Solflare |
+    ProviderType.Backpack |
+    ProviderType.SquadsX;
 
 export interface WalletConnections {
     [Curve.EC]?: WalletConnection;
@@ -60,7 +62,7 @@ export interface WalletConnection {
 
 export interface ExternalNetwork {
     name: string;
-    chainId: ChainID; 
+    chainId: ChainID;
     curve: Curve;
     rpcUrls: string[];
     blockExplorerUrls: string[];
