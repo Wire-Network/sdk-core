@@ -24,6 +24,7 @@ export type ChainID = SolChainID | EvmChainID;
 
 export enum ProviderType {
     Metamask = 'metamask',
+    RabbyWallet = 'rabbywallet',
     BraveWalletEth = 'bravewalleteth',
     WalletConnect = 'walletconnect',
     CoinbaseWallet = 'coinbasewallet',
@@ -38,7 +39,8 @@ export type EcProviderType =
     ProviderType.Metamask |
     ProviderType.BraveWalletEth |
     ProviderType.WalletConnect |
-    ProviderType.CoinbaseWallet;
+    ProviderType.CoinbaseWallet |
+    ProviderType.RabbyWallet;
 
 export type EdProviderType =
     ProviderType.BraveWalletSol |
