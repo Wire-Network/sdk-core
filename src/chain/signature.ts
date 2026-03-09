@@ -3,7 +3,7 @@ import { ABIEncoder } from '../serializer/encoder';
 import { ABISerializableObject } from '../serializer/serializable';
 
 import { Base58 } from '../base58';
-import { isInstanceOf } from '../utils';
+import { hexToArray, isInstanceOf } from '../utils';
 
 import {
     Bytes,
@@ -115,7 +115,7 @@ export class Signature implements ABISerializableObject {
      */
     static fromHex(hexStr: string, type: KeyType): Signature {
         const h = hexStr.startsWith('0x') ? hexStr.slice(2) : hexStr;
-        const raw = Uint8Array.from(Buffer.from(h, 'hex'));
+        const raw = hexToArray(h);
         return Signature.fromRaw(raw, type);
     }
 
