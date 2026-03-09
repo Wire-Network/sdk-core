@@ -96,6 +96,18 @@ export function hexToArray(hex: string) {
     return result;
 }
 
+/** Concatenate multiple Uint8Arrays into one. */
+export function concatBytes(...arrays: Uint8Array[]): Uint8Array {
+    const totalLength = arrays.reduce((sum, a) => sum + a.length, 0);
+    const result = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const a of arrays) {
+        result.set(a, offset);
+        offset += a.length;
+    }
+    return result;
+}
+
 /** Generate N random bytes, throws if a secure random source isn't available. */
 export function secureRandom(length: number): Uint8Array {
     return rand(length);
@@ -174,7 +186,7 @@ export function evmSigToWire(eth_sig: string, prefix = 'EM') {
 
     // ——> this one line replaces your manual digest+slice+hex + ethers.utils.base58.encode:
     const payload = Base58.encodeRipemd160Check(
-        Buffer.from(sigBefore, 'hex'),
+        hexToArray(sigBefore),
         prefix
     );
 
@@ -217,7 +229,7 @@ export const directSignHash = (privateKey: string, hash: string): SignHash => {
 
     // Extract Ethereum address from the keyPair
     const publicKey = keyPair.getPublic('hex').slice(2); // Remove the '04' prefix (uncompressed format)
-    const pubKeyHash = ethers.utils.keccak256(Buffer.from(publicKey, 'hex'));
+    const pubKeyHash = ethers.utils.keccak256(hexToArray(publicKey));
     const address = '0x' + pubKeyHash.slice(-40); // Last 20 bytes as Ethereum address
 
     // Convert r, s, and recovery param into the Ethereum Signature format
@@ -238,8 +250,9 @@ export const normalizeBytesField = (x: any): Uint8Array => {
     // already a byte array
     if (x instanceof Uint8Array) return x;
 
-    // Node.js Buffer
-    if (Buffer.isBuffer(x)) return Uint8Array.from(x);
+    // Node.js Buffer (if available)
+    if (typeof globalThis.Buffer === 'function' && globalThis.Buffer.isBuffer(x))
+        return new Uint8Array(x);
 
     // plain number[]
     if (Array.isArray(x) && x.every(n => typeof n === 'number'))
@@ -275,8 +288,8 @@ export const normalizeBytesField = (x: any): Uint8Array => {
  * @param address 20 bytes buffer of eth address
  * @returns readable hex string of eth address with 0x prefix
  */
-export const ethAddressBufferToString = (address: Buffer) =>
-    '0x' + Buffer.from(address).toString('hex');
+export const ethAddressBufferToString = (address: Uint8Array) =>
+    '0x' + arrayToHex(address);
 
 
 /**
@@ -354,8 +367,7 @@ export type TimePointSecString = string; // ISO date string
  */
 export const checksum_hash = (hex: string) => {
     if (hex.startsWith('0x')) hex = hex.slice(2);
-    const buffer = Buffer.from(hex, 'hex');
-    return ethers.utils.sha256(buffer);
+    return ethers.utils.sha256(hexToArray(hex));
 };
 
 /**
@@ -366,7 +378,7 @@ export const isUtf8 = (bytes) => {
     // Ensure we have a Uint8Array
     if (bytes instanceof ArrayBuffer) {
         bytes = new Uint8Array(bytes);
-    } else if (Buffer.isBuffer(bytes)) {
+    } else if (typeof globalThis.Buffer === 'function' && globalThis.Buffer.isBuffer(bytes)) {
         bytes = new Uint8Array(bytes);
     }
 

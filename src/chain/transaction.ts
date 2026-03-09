@@ -31,6 +31,7 @@ import {
     VarUIntType,
 } from '../';
 import { ethers } from 'ethers';
+import { concatBytes } from '../utils';
 
 @Struct.type('transaction_extension')
 export class TransactionExtension extends Struct {
@@ -213,7 +214,7 @@ export class Transaction extends TransactionHeader {
             
             const ext = TransactionExtension.from({
                 type: TransactionExtensionType.PubKey,
-                data: Buffer.concat([tag, rawKey]),
+                data: concatBytes(tag, rawKey),
             });
             
             this.transaction_extensions.push(ext);

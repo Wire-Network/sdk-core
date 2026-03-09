@@ -1,5 +1,5 @@
 import { Base58 } from '../base58';
-import { isInstanceOf } from '../utils';
+import { hexToArray, isInstanceOf } from '../utils';
 
 import { getPublic } from '../crypto/get-public';
 import { sharedSecret } from '../crypto/shared-secret';
@@ -85,7 +85,7 @@ export class PrivateKey {
 
         return new PrivateKey(
             keyType,
-            new Bytes(privKey.getPrivate().toArrayLike(Buffer, 'be', 32))
+            new Bytes(new Uint8Array(privKey.getPrivate().toArrayLike(Array as any, 'be', 32)))
         );
     }
 
@@ -98,7 +98,7 @@ export class PrivateKey {
         const ec = new EC('secp256k1');
         const p = Array.isArray(phrase) ? phrase.join(' ') : phrase;
         const wallet = ethers.Wallet.fromMnemonic(p);
-        const KP = ec.keyFromPrivate(Buffer.from(wallet.privateKey.slice(2), 'hex'));
+        const KP = ec.keyFromPrivate(hexToArray(wallet.privateKey.slice(2)));
         const PK = PrivateKey.fromElliptic(KP, KeyType.K1);
 
         return {
