@@ -1,90 +1,104 @@
+/* eslint-disable no-console */
 // src/crypto/public_key.ts
 
-import { ABIDecoder } from '../serializer/decoder';
-import { ABIEncoder } from '../serializer/encoder';
-import { ABISerializableObject } from '../serializer/serializable';
+import { ABIDecoder } from '../serializer/decoder'
+import { ABIEncoder } from '../serializer/encoder'
+import { ABISerializableObject } from '../serializer/serializable'
 
-import { Base58 } from '../base58';
-import { isInstanceOf } from '../utils';
+import { Base58 } from '../base58'
+import { arrayToHex, hexToArray, isInstanceOf } from '../utils'
 
-import { Bytes, KeyType } from '../';
+import { Bytes, KeyType } from '../'
 
-export type PublicKeyType = PublicKey | string | { type: string; compressed: Uint8Array };
+export type PublicKeyType = PublicKey | string | { type: string; compressed: Uint8Array }
 
 export class PublicKey implements ABISerializableObject {
     static abiName = 'public_key';
 
     /** Type, e.g. `K1`, `R1`, `EM`, or `ED` */
-    type: KeyType;
+    type: KeyType
     /** Compressed public key point. */
-    data: Bytes;
+    data: Bytes
 
     /** Create PublicKey object from representing types. */
     static from(value: PublicKeyType) {
         if (isInstanceOf(value, PublicKey)) {
-            return value;
+            return value
         }
 
         if (typeof value === 'object' && value.type && value.compressed) {
-            return new PublicKey(KeyType.from(value.type), new Bytes(value.compressed));
+            return new PublicKey(KeyType.from(value.type), new Bytes(value.compressed))
         }
 
         if (typeof value !== 'string') {
-            throw new Error('Invalid public key');
+            throw new Error('Invalid public key')
         }
 
         if (value.startsWith('PUB_')) {
-            const parts = value.split('_');
+            const parts = value.split('_')
 
             if (parts.length !== 3) {
-                throw new Error('Invalid public key string');
+                throw new Error('Invalid public key string')
             }
 
-            const type = KeyType.from(parts[1]);
+            const type = KeyType.from(parts[1])
             // ECDSA curves use 33-byte compressed pubs; ED25519 uses 32-byte
             const size =
                 type === KeyType.K1 || type === KeyType.R1 || type === KeyType.EM ? 33 :
-                    type === KeyType.ED ? 32 : undefined;
-            const data = Base58.decodeRipemd160Check(parts[2], size, type);
-            return new PublicKey(type, data);
+                    type === KeyType.ED ? 32 : undefined
+
+            let data: Bytes | Uint8Array
+
+            try {
+                data = Base58.decodeRipemd160Check(parts[2], size, type);
+            } catch (e) {
+                try {
+                    data = hexToArray(parts[2]);
+                } catch (e2) {
+                    console.error("Both base58 and hex failed to parse", e, e2);
+                    throw e
+                }
+            }
+            // const data = hexToArray(parts[2]);
+            return new PublicKey(type, data)
         } else if (value.length >= 50) {
             // Legacy EOS key
-            const data = Base58.decodeRipemd160Check(value.slice(-50));
-            return new PublicKey(KeyType.K1, data);
+            const data = Base58.decodeRipemd160Check(value.slice(-50))
+            return new PublicKey(KeyType.K1, data)
         } else {
-            throw new Error('Invalid public key string');
+            throw new Error('Invalid public key string')
         }
     }
 
     /** @internal */
     static fromABI(decoder: ABIDecoder) {
-        const type = KeyType.from(decoder.readByte());
+        const type = KeyType.from(decoder.readByte())
 
         if (type == KeyType.WA) {
-            const startPos = decoder.getPosition();
-            decoder.advance(33); // key_data
-            decoder.advance(1); // user presence
-            decoder.advance(decoder.readVaruint32()); // rpid
-            const len = decoder.getPosition() - startPos;
-            decoder.setPosition(startPos);
-            const data = Bytes.from(decoder.readArray(len));
-            return new PublicKey(KeyType.WA, data);
+            const startPos = decoder.getPosition()
+            decoder.advance(33) // key_data
+            decoder.advance(1) // user presence
+            decoder.advance(decoder.readVaruint32()) // rpid
+            const len = decoder.getPosition() - startPos
+            decoder.setPosition(startPos)
+            const data = Bytes.from(decoder.readArray(len))
+            return new PublicKey(KeyType.WA, data)
         }
 
         // ECDSA compressed keys = 33 bytes; ED25519 keys = 32 bytes
-        const len = type === KeyType.ED ? 32 : 33;
-        return new PublicKey(type, new Bytes(decoder.readArray(len)));
+        const len = type === KeyType.ED ? 32 : 33
+        return new PublicKey(type, new Bytes(decoder.readArray(len)))
     }
 
     /** @internal */
     constructor(type: KeyType, data: Bytes | Uint8Array) {
-        this.type = type;
-        this.data = data instanceof Bytes ? data : new Bytes(data);
+        this.type = type
+        this.data = data instanceof Bytes ? data : new Bytes(data)
     }
 
     equals(other: PublicKeyType) {
-        const otherKey = PublicKey.from(other);
-        return this.type === otherKey.type && this.data.equals(otherKey.data);
+        const otherKey = PublicKey.from(other)
+        return this.type === otherKey.type && this.data.equals(otherKey.data)
     }
 
     /**
@@ -93,10 +107,10 @@ export class PublicKey implements ABISerializableObject {
      */
     toLegacyString(prefix = 'SYS') {
         if (this.type !== KeyType.K1 && this.type !== KeyType.EM) {
-            throw new Error('Unable to create legacy formatted string for non-K1/EM key');
+            throw new Error('Unable to create legacy formatted string for non-K1/EM key')
         }
 
-        return `${prefix}${Base58.encodeRipemd160Check(this.data)}`;
+        return `${prefix}${Base58.encodeRipemd160Check(this.data)}`
     }
 
     /** Return key in modern Antelope/EOSIO format (`PUB_<type>_<base58data>`) */
@@ -104,20 +118,31 @@ export class PublicKey implements ABISerializableObject {
         // Ensure the key is compressed
         if ((this.type === KeyType.K1 || this.type === KeyType.R1 || this.type === KeyType.EM) &&
             this.data.array.length !== 33) {
-            throw new Error(`Expected 33-byte compressed key for ${this.type}, got ${this.data.array.length}`);
+            throw new Error(`Expected 33-byte compressed key for ${this.type}, got ${this.data.array.length}`)
         }
 
-        return `PUB_${this.type}_${Base58.encodeRipemd160Check(this.data, this.type)}`;
+        // return `PUB_${this.type}_${Base58.encodeRipemd160Check(this.data, this.type)}`;
+        return `PUB_${this.type}_${arrayToHex(this.data.array)}`
+    }
+
+    toHexString() {
+        // Ensure the key is compressed
+        if ((this.type === KeyType.K1 || this.type === KeyType.R1 || this.type === KeyType.EM) &&
+            this.data.array.length !== 33) {
+            throw new Error(`Expected 33-byte compressed key for ${this.type}, got ${this.data.array.length}`)
+        }
+
+        return `PUB_${this.type}_${arrayToHex(this.data.array)}`
     }
 
     /** @internal */
     toABI(encoder: ABIEncoder) {
-        encoder.writeByte(KeyType.indexFor(this.type));
-        encoder.writeArray(this.data.array);
+        encoder.writeByte(KeyType.indexFor(this.type))
+        encoder.writeArray(this.data.array)
     }
 
     /** @internal */
     toJSON() {
-        return this.toString();
+        return this.toString()
     }
 }

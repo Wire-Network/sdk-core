@@ -1,9 +1,9 @@
-import { ABIDecoder } from '../serializer/decoder';
-import { ABIEncoder } from '../serializer/encoder';
-import { ABISerializableObject } from '../serializer/serializable';
+import { ABIDecoder } from '../serializer/decoder'
+import { ABIEncoder } from '../serializer/encoder'
+import { ABISerializableObject } from '../serializer/serializable'
 
-import { Base58 } from '../base58';
-import { hexToArray, isInstanceOf } from '../utils';
+import { Base58 } from '../base58'
+import { arrayToHex, hexToArray, isInstanceOf } from '../utils'
 
 import {
     Bytes,
@@ -13,40 +13,40 @@ import {
     Crypto,
     KeyType,
     PublicKey,
-} from '../';
+} from '../'
 
-export type SignatureType = Signature | SignatureParts | string;
+export type SignatureType = Signature | SignatureParts | string
 
 export type SignatureParts = {
-    type: KeyType;
-    r: Uint8Array;
-    s: Uint8Array;
-    recid: number;
-};
+    type: KeyType
+    r: Uint8Array
+    s: Uint8Array
+    recid: number
+}
 
 export class Signature implements ABISerializableObject {
     static abiName = 'signature';
 
-    type: KeyType;
-    data: Bytes;
+    type: KeyType
+    data: Bytes
 
     /** Create Signature object from representing types. */
     static from(value: SignatureType): Signature {
-        if (isInstanceOf(value, Signature)) return value;
+        if (isInstanceOf(value, Signature)) return value
 
         if (typeof value === 'object' && 'r' in value && 's' in value) {
             // ED25519 is pure 64-byte r||s
             if (value.type === KeyType.ED) {
-                const data = new Uint8Array(64);
-                data.set(value.r, 0);
-                data.set(value.s, 32);
-                return new Signature(KeyType.ED, new Bytes(data));
+                const data = new Uint8Array(64)
+                data.set(value.r, 0)
+                data.set(value.s, 32)
+                return new Signature(KeyType.ED, new Bytes(data))
             }
 
             // everything else stays 65-byte with recid in [0]
-            const data = new Uint8Array(1 + 32 + 32);
-            let recid = value.recid;
-            const type = KeyType.from(value.type);
+            const data = new Uint8Array(1 + 32 + 32)
+            let recid = value.recid
+            const type = KeyType.from(value.type)
 
             // ECDSA recid offset
             if (
@@ -54,56 +54,96 @@ export class Signature implements ABISerializableObject {
                 type === KeyType.R1 ||
                 type === KeyType.EM
             ) {
-                recid += 31;
+                recid += 31
             }
 
-            data[0] = recid;
-            data.set(value.r, 1);
-            data.set(value.s, 33);
-            return new Signature(type, new Bytes(data));
+            data[0] = recid
+            data.set(value.r, 1)
+            data.set(value.s, 33)
+            return new Signature(type, new Bytes(data))
         }
 
         // string form
         if (typeof value !== 'string' || !value.startsWith('SIG_')) {
-            throw new Error('Invalid signature string');
+            throw new Error('Invalid signature string')
         }
 
-        const parts = value.split('_');
+        const parts = value.split('_')
 
         if (parts.length !== 3) {
-            throw new Error('Invalid signature string');
+            throw new Error('Invalid signature string')
         }
 
-        const type = KeyType.from(parts[1]);
-        // 65 for ECDSA, 64 for ED
-        const length =
-            type === KeyType.K1 || type === KeyType.R1 || type === KeyType.EM
-                ? 65
-                : type === KeyType.ED
-                    ? 64
-                    : undefined;
-        const data = Base58.decodeRipemd160Check(parts[2], length, type);
-        return new Signature(type, data);
+        const type = KeyType.from(parts[1])
+
+        let data: Bytes | Uint8Array
+
+        if (type === KeyType.EM) {
+            // SIG_EM_ hex is in libfc format [r(32)|s(32)|v(1)]
+            // Convert to internal wire format [vWire(1)|r(32)|s(32)]
+            const raw = hexToArray(parts[2])
+            if (raw.length !== 65) {
+                throw new Error(`EM signature hex must be 65 bytes, got ${raw.length}`)
+            }
+            const v = raw[64] // Ethereum v (27/28)
+            const wire = new Uint8Array(65)
+            wire[0] = v + 4 // vWire
+            wire.set(raw.subarray(0, 32), 1)   // r
+            wire.set(raw.subarray(32, 64), 33)  // s
+            return new Signature(type, new Bytes(wire))
+        }
+
+        try {
+            // 65 for ECDSA, 64 for ED
+            const length =
+                type === KeyType.K1 || type === KeyType.R1
+                    ? 65
+                    : type === KeyType.ED
+                        ? 64
+                        : undefined
+            data = Base58.decodeRipemd160Check(parts[2], length, type)
+        } catch (e) {
+            try {
+                data = hexToArray(parts[2])
+            } catch (e2) {
+                console.error("Both base58 and hex failed to parse", e, e2)
+                throw e
+            }
+        }
+
+        return new Signature(type, data)
     }
 
     /** @internal */
     static fromABI(decoder: ABIDecoder): Signature {
-        const type = KeyType.from(decoder.readByte());
+        const type = KeyType.from(decoder.readByte())
 
         if (type === KeyType.WA) {
-            const startPos = decoder.getPosition();
-            decoder.advance(65); // compact_signature
-            decoder.advance(decoder.readVaruint32()); // auth_data
-            decoder.advance(decoder.readVaruint32()); // client_json
-            const len = decoder.getPosition() - startPos;
-            decoder.setPosition(startPos);
-            const data = Bytes.from(decoder.readArray(len));
-            return new Signature(KeyType.WA, data);
+            const startPos = decoder.getPosition()
+            decoder.advance(65) // compact_signature
+            decoder.advance(decoder.readVaruint32()) // auth_data
+            decoder.advance(decoder.readVaruint32()) // client_json
+            const len = decoder.getPosition() - startPos
+            decoder.setPosition(startPos)
+            const data = Bytes.from(decoder.readArray(len))
+            return new Signature(KeyType.WA, data)
         }
 
-        const length = (type === KeyType.ED) ? 64 : 65;
-        const bytes = decoder.readArray(length);
-        return new Signature(type, new Bytes(bytes));
+        const length = (type === KeyType.ED) ? 64 : 65
+        const bytes = decoder.readArray(length)
+
+        if (type === KeyType.EM) {
+            // libfc ABI format is [r(32)|s(32)|v(1)] where v=27/28
+            // Convert to internal wire format [vWire|r|s] where vWire = v + 4
+            const v = bytes[64]
+            const wire = new Uint8Array(65)
+            wire[0] = v + 4 // vWire
+            wire.set(bytes.subarray(0, 32), 1)   // r
+            wire.set(bytes.subarray(32, 64), 33)  // s
+            return new Signature(type, new Bytes(wire))
+        }
+
+        return new Signature(type, new Bytes(bytes))
     }
 
     /**
@@ -114,9 +154,9 @@ export class Signature implements ABISerializableObject {
      * @param type    KeyType.K1 | KeyType.R1 | KeyType.EM | KeyType.ED
      */
     static fromHex(hexStr: string, type: KeyType): Signature {
-        const h = hexStr.startsWith('0x') ? hexStr.slice(2) : hexStr;
-        const raw = hexToArray(h);
-        return Signature.fromRaw(raw, type);
+        const h = hexStr.startsWith('0x') ? hexStr.slice(2) : hexStr
+        const raw = hexToArray(h)
+        return Signature.fromRaw(raw, type)
     }
 
     /**
@@ -127,37 +167,37 @@ export class Signature implements ABISerializableObject {
     static fromRaw(raw: Uint8Array, type: KeyType): Signature {
         // ED25519: the raw is already [r‖s]
         if (type === KeyType.ED) {
-            if (raw.length !== 64) throw new Error(`ED raw sig must be 64 bytes, got ${raw.length}`);
-            return new Signature(type, new Bytes(raw));
+            if (raw.length !== 64) throw new Error(`ED raw sig must be 64 bytes, got ${raw.length}`)
+            return new Signature(type, new Bytes(raw))
         }
 
         // ECDSA/EIP-191: raw should be 65 bytes [r‖s‖v]
         if (raw.length !== 65) {
-            throw new Error(`Raw sig must be 65 bytes for ${type}, got ${raw.length}`);
+            throw new Error(`Raw sig must be 65 bytes for ${type}, got ${raw.length}`)
         }
 
-        const r = raw.subarray(0, 32);
-        const s = raw.subarray(32, 64);
-        const vRaw = raw[64];
+        const r = raw.subarray(0, 32)
+        const s = raw.subarray(32, 64)
+        const vRaw = raw[64]
 
         // Compute the wire‐format recid byte (vWire)
-        let vWire: number;
+        let vWire: number
 
         if (type === KeyType.EM) {
             // Ethereum v (27/28) → wire recid in [31,32]
-            vWire = vRaw + 4;
+            vWire = vRaw + 4
         } else {
             // K1/R1: raw recid (0/1) → wire recid in [31,32]
-            vWire = vRaw + 31;
+            vWire = vRaw + 31
         }
 
         // Pack into [vWire‖r‖s]
-        const wire = new Uint8Array(65);
-        wire[0] = vWire;
-        wire.set(r, 1);
-        wire.set(s, 33);
+        const wire = new Uint8Array(65)
+        wire[0] = vWire
+        wire.set(r, 1)
+        wire.set(s, 33)
 
-        return new Signature(type, new Bytes(wire));
+        return new Signature(type, new Bytes(wire))
     }
 
     /**
@@ -168,30 +208,30 @@ export class Signature implements ABISerializableObject {
      *               - ED:       64 bytes `[r(32)‖s(32)]`
      */
     constructor(type: KeyType, data: Bytes | Uint8Array) {
-        this.type = type;
-        this.data = data instanceof Bytes ? data : new Bytes(data);
+        this.type = type
+        this.data = data instanceof Bytes ? data : new Bytes(data)
     }
 
     equals(other: SignatureType): boolean {
-        const otherSig = Signature.from(other);
-        return this.type === otherSig.type && this.data.equals(otherSig.data);
+        const otherSig = Signature.from(other)
+        return this.type === otherSig.type && this.data.equals(otherSig.data)
     }
 
     /** Recover public key from given message digest. */
     recoverDigest(digest: Checksum256Type): PublicKey {
-        digest = Checksum256.from(digest);
-        return Crypto.recover(this.data.array, digest.array, this.type);
+        digest = Checksum256.from(digest)
+        return Crypto.recover(this.data.array, digest.array, this.type)
     }
 
     /** Recover public key from given message. */
     recoverMessage(message: BytesType): PublicKey {
-        return this.recoverDigest(Checksum256.hash(message));
+        return this.recoverDigest(Checksum256.hash(message))
     }
 
     /** Verify this signature with given message digest and public key. */
     verifyDigest(digest: Checksum256Type, publicKey: PublicKey): boolean {
-        digest = Checksum256.from(digest);
-        return Crypto.verify(this.data.array, digest.array, publicKey.data.array, this.type);
+        digest = Checksum256.from(digest)
+        return Crypto.verify(this.data.array, digest.array, publicKey.data.array, this.type)
     }
 
     /**
@@ -212,39 +252,51 @@ export class Signature implements ABISerializableObject {
      * @returns           `true` if the signature is valid, `false` otherwise.
      */
     verifyMessage(message: BytesType, publicKey: PublicKey): boolean {
-        const rawMsg = Bytes.from(message).array;
+        const rawMsg = Bytes.from(message).array
 
         switch (this.type) {
             case KeyType.ED:
                 // ED25519: raw `[r‖s]`
-                return Crypto.verify(this.data.array, rawMsg, publicKey.data.array, this.type);
+                return Crypto.verify(this.data.array, rawMsg, publicKey.data.array, this.type)
 
             case KeyType.EM: {
                 // 1) unwrap wire [vWire‖r‖s]
-                const wire = this.data.array;
-                const vRaw = wire[0] - 4; // 27 or 28
-                const r = wire.subarray(1, 33);
-                const s = wire.subarray(33, 65);
+                const wire = this.data.array
+                const vRaw = wire[0] - 4 // 27 or 28
+                const r = wire.subarray(1, 33)
+                const s = wire.subarray(33, 65)
 
                 // 2) rebuild raw sig [r‖s‖vRaw]
-                const sig = new Uint8Array(65);
-                sig.set(r, 0);
-                sig.set(s, 32);
-                sig[64] = vRaw;
+                const sig = new Uint8Array(65)
+                sig.set(r, 0)
+                sig.set(s, 32)
+                sig[64] = vRaw
 
                 // 3) verify with EIP-191 prefix + keccak256
-                return Crypto.verify(sig, rawMsg, publicKey.data.array, KeyType.EM);
+                return Crypto.verify(sig, rawMsg, publicKey.data.array, KeyType.EM)
             }
 
             default:
                 // K1/R1 use SHA-256 digest path
-                return this.verifyDigest(Checksum256.hash(message), publicKey);
+                return this.verifyDigest(Checksum256.hash(message), publicKey)
         }
     }
 
     /** Base58check encoded string representation of this signature (`SIG_<type>_<data>`). */
     toString(): string {
-        return `SIG_${this.type}_${Base58.encodeRipemd160Check(this.data, this.type)}`;
+        if (this.type === KeyType.EM) {
+            // Internal wire format is [vWire|r|s], but SIG_EM_ hex uses
+            // libfc's [r|s|v] format where v = vWire - 4 (Ethereum v: 27/28)
+            const wire = this.data.array
+            const v = wire[0] - 4
+            const out = new Uint8Array(65)
+            out.set(wire.subarray(1, 33), 0)   // r
+            out.set(wire.subarray(33, 65), 32)  // s
+            out[64] = v
+            return `SIG_${this.type}_${arrayToHex(out)}`
+        }
+
+        return `SIG_${this.type}_${Base58.encodeRipemd160Check(this.data, this.type)}`
     }
 
     /**
@@ -254,58 +306,70 @@ export class Signature implements ABISerializableObject {
      * - ED: [r||s] (64 bytes)
      */
     toHex(): string {
-        const wire = this.data.array;
-        let raw: Uint8Array;
+        const wire = this.data.array
+        let raw: Uint8Array
 
         switch (this.type) {
             case KeyType.EM: {
                 // wire[0] = ethV + 4
-                const ethV = wire[0] - 4; // 27 or 28
-                raw = new Uint8Array(65);
-                raw.set(wire.subarray(1, 33), 0);
-                raw.set(wire.subarray(33, 65), 32);
-                raw[64] = ethV;
-                break;
+                const ethV = wire[0] - 4 // 27 or 28
+                raw = new Uint8Array(65)
+                raw.set(wire.subarray(1, 33), 0)
+                raw.set(wire.subarray(33, 65), 32)
+                raw[64] = ethV
+                break
             }
 
             case KeyType.K1:
             // eslint-disable-next-line padding-line-between-statements, no-fallthrough
             case KeyType.R1: {
                 // wire[0] = k1V + 31
-                const k1V = wire[0] - 31; // 0 or 1
-                raw = new Uint8Array(65);
-                raw.set(wire.subarray(1, 33), 0);
-                raw.set(wire.subarray(33, 65), 32);
-                raw[64] = k1V;
-                break;
+                const k1V = wire[0] - 31 // 0 or 1
+                raw = new Uint8Array(65)
+                raw.set(wire.subarray(1, 33), 0)
+                raw.set(wire.subarray(33, 65), 32)
+                raw[64] = k1V
+                break
             }
 
             case KeyType.ED: {
                 // ED is already [r||s]
-                raw = wire;
-                break;
+                raw = wire
+                break
             }
 
             default:
-                throw new Error(`toHex() not supported for key type ${this.type}`);
+                throw new Error(`toHex() not supported for key type ${this.type}`)
         }
 
         // hex‐encode
         const hex = Array.from(raw)
             .map(b => b.toString(16).padStart(2, '0'))
-            .join('');
-        return '0x' + hex;
+            .join('')
+        return '0x' + hex
     }
 
     /** @internal */
     toABI(encoder: ABIEncoder): void {
-        encoder.writeByte(KeyType.indexFor(this.type));
-        encoder.writeArray(this.data.array);
+        encoder.writeByte(KeyType.indexFor(this.type))
+        if (this.type === KeyType.EM) {
+            // Internal wire format is [vWire|r|s], but libfc's
+            // em::compact_signature expects [r|s|v] where v = vWire - 4
+            const wire = this.data.array
+            const v = wire[0] - 4 // Ethereum v (27/28)
+            const out = new Uint8Array(65)
+            out.set(wire.subarray(1, 33), 0)   // r
+            out.set(wire.subarray(33, 65), 32)  // s
+            out[64] = v
+            encoder.writeArray(out)
+        } else {
+            encoder.writeArray(this.data.array)
+        }
     }
 
     /** @internal */
     toJSON(): string {
-        return this.toString();
+        return this.toString()
     }
 }
 
@@ -315,15 +379,15 @@ export class Signature implements ABISerializableObject {
  * @returns The padded 65 byte signature used for wire transactions.
  */
 export function padEdForTx(sig: Signature): Signature {
-    if (sig.type !== KeyType.ED) return sig;
-    const arr = sig.data.array;
-    if (arr.length === 65) return sig;
-    if (arr.length !== 64) throw new Error(`ED sig must be 64 or 65, got ${arr.length}`);
-    const padded = new Uint8Array(65);
-    padded.set(arr, 0);
-    padded[64] = 0;
+    if (sig.type !== KeyType.ED) return sig
+    const arr = sig.data.array
+    if (arr.length === 65) return sig
+    if (arr.length !== 64) throw new Error(`ED sig must be 64 or 65, got ${arr.length}`)
+    const padded = new Uint8Array(65)
+    padded.set(arr, 0)
+    padded[64] = 0
 
-    return new Signature(KeyType.ED, new Bytes(padded));
+    return new Signature(KeyType.ED, new Bytes(padded))
 }
 
 /**
@@ -332,12 +396,12 @@ export function padEdForTx(sig: Signature): Signature {
  * @returns The stripped signature.
  */
 export function stripEdPad(sig: Signature): Signature {
-    if (sig.type !== KeyType.ED) return sig;
-    const a = sig.data.array;
+    if (sig.type !== KeyType.ED) return sig
+    const a = sig.data.array
 
     if (a.length === 65 && a[64] === 0) {
-        return new Signature(KeyType.ED, a.subarray(0, 64));
+        return new Signature(KeyType.ED, a.subarray(0, 64))
     }
 
-    return sig;
+    return sig
 }
