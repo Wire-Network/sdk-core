@@ -27,19 +27,12 @@ export class PermissionLevelWeight extends Struct {
     @Struct.field(Weight) weight!: Weight;
 }
 
-@Struct.type('wait_weight')
-export class WaitWeight extends Struct {
-    @Struct.field(UInt32) wait_sec!: UInt32;
-    @Struct.field(Weight) weight!: Weight;
-}
-
 export type AuthorityType =
     | Authority
     | {
           threshold: UInt32Type;
           keys?: {key: PublicKeyType; weight: UInt16Type}[];
           accounts?: {permission: PermissionLevelType; weight: UInt16Type}[];
-          waits?: {wait_sec: UInt32Type; weight: UInt16Type}[];
       };
 
 @Struct.type('authority')
@@ -48,7 +41,6 @@ export class Authority extends Struct {
     @Struct.field(KeyWeight, {array: true}) keys!: KeyWeight[];
     @Struct.field(PermissionLevelWeight, {array: true})
     accounts!: PermissionLevelWeight[];
-    @Struct.field(WaitWeight, {array: true}) waits!: WaitWeight[];
 
     static from(value: AuthorityType): Authority {
         if (isInstanceOf(value, Authority)) {
@@ -58,21 +50,15 @@ export class Authority extends Struct {
         const rv = super.from({
             keys: [],
             accounts: [],
-            waits: [],
             ...value,
         }) as Authority;
         rv.sort();
         return rv;
     }
 
-    /** Total weight of all waits. */
-    get waitThreshold(): number {
-        return this.waits.reduce((val, wait) => val + wait.weight.toNumber(), 0);
-    }
-
     /** Weight a key needs to sign for this authority. */
     get keyThreshold(): number {
-        return this.threshold.toNumber() - this.waitThreshold;
+        return this.threshold.toNumber();
     }
 
     /** Return the weight for given public key, or zero if it is not included in this authority. */
@@ -99,6 +85,5 @@ export class Authority extends Struct {
     sort() {
         this.keys.sort((a, b) => String(a.key).localeCompare(String(b.key)));
         this.accounts.sort((a, b) => String(a.permission).localeCompare(String(b.permission)));
-        this.waits.sort((a, b) => String(a.wait_sec).localeCompare(String(b.wait_sec)));
     }
 }
