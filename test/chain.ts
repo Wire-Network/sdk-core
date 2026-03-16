@@ -707,7 +707,7 @@ suite('chain', function () {
 
     test('authority', function () {
         const auth = Authority.from({
-            threshold: 21,
+            threshold: 20,
             keys: [
                 {
                     key: 'EOS6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin',
@@ -718,7 +718,6 @@ suite('chain', function () {
                     weight: 2,
                 },
             ],
-            waits: [{wait_sec: 10, weight: 1}],
         });
         assert.ok(auth.hasPermission('EOS6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin'));
         assert.ok(
