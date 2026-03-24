@@ -94,7 +94,7 @@ export namespace Chains {
     export const DEVNET = ChainDefinition.from({
         id: 'a53ac16673f6baf13b439d350e21dc8c37de7691ef4f287beca894dc23fdec34',
         name: 'Wire Devnet',
-        endpoint: 'https://wire-sysio-chain-api.dev.wire-dev.com/',
+        endpoint: 'https://wire-sysio-chain-api.dev.wire-dev.com',
         hyperion: 'https://hyperion-wire-sysio.gitgo.app',
         // websocket: 'ws://dev-hist.gitgo.app',
         namespace: 'sysio',
