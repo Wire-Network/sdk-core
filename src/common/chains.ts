@@ -78,38 +78,39 @@ export class ChainDefinition {
 // ----------------------------------------------------------------------------
 
 export namespace Chains {
-    export const TESTNET = ChainDefinition.from({
-        id: '065dcca2dc758af25bcf3b878260a19dd1b81e4597f2af15a262a0c67f1e0106',
-        name: 'Wire Testnet',
-        endpoint: 'https://testnet-00.wire.foundation',
-        hyperion: 'https://testnet-hyperion.wire.foundation',
-        websocket: 'ws://testnet-ship.wire.foundation',
-        watchdawg: 'https://dawg.wire.foundation',
-        namespace: 'sysio',
-        coreSymbol: 'SYS',
-        selected: true,
-        logo: '../assets/logos/wire-testnet.png'
-    });
+    // export const TESTNET = ChainDefinition.from({
+    //     id: '065dcca2dc758af25bcf3b878260a19dd1b81e4597f2af15a262a0c67f1e0106',
+    //     name: 'Wire Testnet',
+    //     endpoint: 'https://testnet-00.wire.foundation',
+    //     hyperion: 'https://testnet-hyperion.wire.foundation',
+    //     websocket: 'ws://testnet-ship.wire.foundation',
+    //     watchdawg: 'https://dawg.wire.foundation',
+    //     namespace: 'sysio',
+    //     coreSymbol: 'SYS',
+    //     selected: true,
+    //     logo: '../assets/logos/wire-testnet.png'
+    // });
 
     export const DEVNET = ChainDefinition.from({
-        id: '260348861b12af1497fd274ca772d1f79978f7acc605c8e766344acd967536dc',
+        id: 'a53ac16673f6baf13b439d350e21dc8c37de7691ef4f287beca894dc23fdec34',
         name: 'Wire Devnet',
-        endpoint: 'https://det-dev.gitgo.app',
-        hyperion: 'https://dev-hyperion.gitgo.app',
-        websocket: 'ws://dev-hist.gitgo.app',
+        endpoint: 'https://wire-sysio-chain-api.dev.wire-dev.com/',
+        hyperion: 'https://hyperion-wire-sysio.gitgo.app',
+        // websocket: 'ws://dev-hist.gitgo.app',
         namespace: 'sysio',
         coreSymbol: 'SYS',
-        logo: '../assets/logos/wire-devnet.png'
+        logo: '../assets/logos/W.png',
+        selected: true
     });
 
-    export const MAINNET_CLASSIC = ChainDefinition.from({
-        id: 'de9943091e811bfb246ca243144b4d274886b959bbb17dd33d0bc97c745dbbe0',
-        name: 'Wire Classic',
-        endpoint: 'https://wire.siliconswamp.info',
-        hyperion: 'https://hyperwire.airwire.io',
-        websocket: 'ws://swamprod.airwire.io:8080',
-        namespace: 'eosio',
-        coreSymbol: 'EOS',
-        logo: '../assets/logos/wire.png'
-    });
+    // export const MAINNET_CLASSIC = ChainDefinition.from({
+    //     id: 'de9943091e811bfb246ca243144b4d274886b959bbb17dd33d0bc97c745dbbe0',
+    //     name: 'Wire Classic',
+    //     endpoint: 'https://wire.siliconswamp.info',
+    //     hyperion: 'https://hyperwire.airwire.io',
+    //     websocket: 'ws://swamprod.airwire.io:8080',
+    //     namespace: 'eosio',
+    //     coreSymbol: 'EOS',
+    //     logo: '../assets/logos/wire.png'
+    // });
 }
