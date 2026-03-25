@@ -154,7 +154,7 @@ export class BlockTimestamp extends TimePointBase {
     static abiName = 'block_timestamp_type';
 
     static fromMilliseconds(ms: number) {
-        return new this(UInt32.from(Math.round((ms - 946684800000) / 500)));
+        return new this(UInt32.from(Math.round((ms - 1735689600000) / 500)));
     }
 
     static fromInteger(value: UInt32Type) {
@@ -176,6 +176,6 @@ export class BlockTimestamp extends TimePointBase {
     }
 
     toMilliseconds() {
-        return Number(this.value.cast(UInt64).multiplying(500).adding(946684800000));
+        return Number(this.value.cast(UInt64).multiplying(500).adding(1735689600000));
     }
 }
