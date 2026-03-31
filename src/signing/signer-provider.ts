@@ -1,6 +1,7 @@
 import { ethers } from "ethers";
 import { KeyType, PrivateKey, PublicKey } from "../chain";
 import { getCurve } from "../crypto";
+import { hexToArray } from "../utils";
 
 export interface SignerProvider {
     /**
@@ -69,8 +70,8 @@ export const createClassicSigner = (secret: Uint8Array, keyType = KeyType.K1): S
     return {
         pubKey: privKey.toPublic(),
         async sign(msg) {
-            const sigBytes = privKey.signMessage(msg).data.array
-            return sigBytes;
+            const signature = privKey.signMessage(msg);
+            return hexToArray(signature.toHex().slice(2));
         }
     };
 }
