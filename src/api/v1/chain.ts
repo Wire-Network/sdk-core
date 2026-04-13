@@ -330,7 +330,39 @@ export class ChainAPI {
         });
         let ram_payers: Name[] | undefined;
 
-        if (params.show_payer) {
+        // Wire-sysio PR Wire-Network/wire-sysio#290 unified the get_table_rows
+        // endpoint and changed the per-row shape for KV-backed tables from
+        //   {<decoded struct fields>}                  (legacy)
+        //   {data: <decoded>, payer: <name>}           (legacy + show_payer)
+        // to
+        //   {key, value, payer?}                       (unified, all KV tables)
+        // The new shape is detectable: each row is an object with both `key`
+        // and `value` keys. Unwrap to expose the decoded value (or hex string
+        // when json=false) directly to downstream code, and capture `payer`
+        // into ram_payers when show_payer was requested. This preserves the
+        // legacy shape (plain decoded object, optionally wrapped in
+        // {data, payer}) for callers and stays backward compatible with
+        // EOSIO chains that still emit the old format.
+        const isWireKvShape =
+            Array.isArray(rows) &&
+            rows.length > 0 &&
+            typeof rows[0] === 'object' &&
+            rows[0] !== null &&
+            'key' in rows[0] &&
+            'value' in rows[0];
+
+        if (isWireKvShape) {
+            if (params.show_payer) {
+                ram_payers = [];
+                rows = rows.map((row: {value: any; payer?: string}) => {
+                    ram_payers!.push(Name.from(row.payer ?? ''));
+                    return row.value;
+                });
+            } else {
+                rows = rows.map((row: {value: any}) => row.value);
+            }
+        } else if (params.show_payer) {
+            // Legacy show_payer wrapper: {data, payer}
             ram_payers = [];
             rows = rows.map(({data, payer}) => {
                 ram_payers!.push(Name.from(payer));

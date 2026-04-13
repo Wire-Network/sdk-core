@@ -99,7 +99,12 @@ export class ABI implements ABISerializableObject {
         const numTables = decoder.readVaruint32();
 
         for (let i = 0; i < numTables; i++) {
-            const name = Name.fromABI(decoder);
+            // Wire-sysio PR Wire-Network/wire-sysio#288: name is now a length-
+            // prefixed string (was an 8-byte sysio::name uint64), and the table
+            // gains table_id (uint16) and secondary_indexes (vector<index_def>).
+            // The struct binary order matches sysio::chain::table_def in
+            // libraries/chain/include/sysio/chain/abi_def.hpp.
+            const name = decoder.readString();
             const index_type = decoder.readString();
             const key_names: string[] = [];
             const numKeyNames = decoder.readVaruint32();
@@ -116,7 +121,35 @@ export class ABI implements ABISerializableObject {
             }
 
             const type = decoder.readString();
-            tables.push({name, index_type, key_names, key_types, type});
+            // table_id: uint16 LE
+            const tidLo = decoder.readByte();
+            const tidHi = decoder.readByte();
+            const table_id = tidLo | (tidHi << 8);
+            // secondary_indexes: vector<index_def>
+            const secondary_indexes: ABI.Index[] = [];
+            const numIndexes = decoder.readVaruint32();
+
+            for (let j = 0; j < numIndexes; j++) {
+                const idxName = decoder.readString();
+                const idxKeyType = decoder.readString();
+                const idxLo = decoder.readByte();
+                const idxHi = decoder.readByte();
+                secondary_indexes.push({
+                    name: idxName,
+                    key_type: idxKeyType,
+                    table_id: idxLo | (idxHi << 8),
+                });
+            }
+
+            tables.push({
+                name,
+                index_type,
+                key_names,
+                key_types,
+                type,
+                table_id,
+                secondary_indexes,
+            });
         }
 
         const ricardian_clauses: ABI.Clause[] = [];
@@ -175,6 +208,14 @@ export class ABI implements ABISerializableObject {
             }
         }
 
+        // protobuf_types: forward-compat extension added by wire-sysio in
+        // libraries/chain/include/sysio/chain/abi_def.hpp. The SDK does not
+        // consume this field but reads it so any subsequent extension
+        // appended to abi_def can also be parsed cleanly.
+        if (decoder.canRead()) {
+            decoder.readString(); // discard
+        }
+
         return new ABI({
             version,
             types,
@@ -220,7 +261,11 @@ export class ABI implements ABISerializableObject {
         encoder.writeVaruint32(this.tables.length);
 
         for (const table of this.tables) {
-            Name.from(table.name).toABI(encoder);
+            // table_def.name is now a free-form string (was a sysio::name uint64
+            // before wire-sysio PR Wire-Network/wire-sysio#288). Coerce via
+            // String() so callers that historically passed a Name object via
+            // NameType still work.
+            encoder.writeString(String(table.name));
             encoder.writeString(table.index_type);
             encoder.writeVaruint32(table.key_names.length);
 
@@ -235,6 +280,22 @@ export class ABI implements ABISerializableObject {
             }
 
             encoder.writeString(table.type);
+            // table_id: uint16 LE; default 0 for tables built without one
+            // (e.g. hand-constructed test fixtures). The chain side computes
+            // the same value via DJB2(name) % 65536 at compile time in CDT.
+            const tid = table.table_id ?? 0;
+            encoder.writeByte(tid & 0xff);
+            encoder.writeByte((tid >> 8) & 0xff);
+            // secondary_indexes: vector<index_def>
+            const secIdx = table.secondary_indexes ?? [];
+            encoder.writeVaruint32(secIdx.length);
+
+            for (const idx of secIdx) {
+                encoder.writeString(idx.name);
+                encoder.writeString(idx.key_type);
+                encoder.writeByte(idx.table_id & 0xff);
+                encoder.writeByte((idx.table_id >> 8) & 0xff);
+            }
         }
 
         encoder.writeVaruint32(this.ricardian_clauses.length);
@@ -263,6 +324,11 @@ export class ABI implements ABISerializableObject {
             Name.from(result.name).toABI(encoder);
             encoder.writeString(result.result_type);
         }
+
+        // protobuf_types: forward-compat extension. Always written as empty
+        // string for symmetry with the parser; wire-sysio's
+        // sysio::chain::abi_def writes this field unconditionally.
+        encoder.writeString('');
     }
 
     resolveType(name: string): ABI.ResolvedType {
@@ -398,12 +464,28 @@ export namespace ABI {
         type: string;
         ricardian_contract: string;
     }
+    // Per-secondary-index metadata embedded in Table. Mirrors
+    // sysio::chain::index_def in wire-sysio's
+    // libraries/chain/include/sysio/chain/abi_def.hpp.
+    export interface Index {
+        name: string;
+        key_type: string;
+        table_id: number;
+    }
+    // Wire-sysio PR Wire-Network/wire-sysio#288 widened table_def.name from
+    // sysio::name (uint64) to a free-form string and added table_id (uint16,
+    // DJB2 hash of the table name % 65536) and secondary_indexes for KV-table
+    // per-table namespace isolation. Older EOSIO chains still emit the legacy
+    // 8-byte name and have no table_id/secondary_indexes; this SDK only
+    // supports the wire-sysio binary format.
     export interface Table {
         name: NameType;
         index_type: string;
         key_names: string[];
         key_types: string[];
         type: string;
+        table_id?: number;
+        secondary_indexes?: Index[];
     }
     export interface Clause {
         id: string;
