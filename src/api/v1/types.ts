@@ -147,8 +147,8 @@ export class AccountObject extends Struct {
     @Struct.field('bool') declare privileged: boolean;
     /** Last update to accounts contract as unix timestamp. */
     @Struct.field('time_point') declare last_code_update: TimePoint;
-    /** Account created as unix timestamp. */
-    @Struct.field('time_point') declare created: TimePoint;
+    // /** Account created as unix timestamp. */
+    // @Struct.field('time_point') declare created: TimePoint;
     /** Account core token balance */
     @Struct.field('asset?') core_liquid_balance?: Asset;
     @Struct.field('int64') declare ram_quota: Int64;
@@ -609,8 +609,8 @@ export class GetTableByScopeResponseRow extends Struct {
     @Struct.field('name') declare code: Name;
     @Struct.field('name') declare scope: Name;
     @Struct.field('name') declare table: Name;
-    @Struct.field('name') declare payer: Name;
-    @Struct.field('uint32') declare count: UInt32;
+    // @Struct.field('name') declare payer?: Name;
+    // @Struct.field('uint32') declare count?: UInt32;
 }
 
 @Struct.type('get_table_by_scope_response')
