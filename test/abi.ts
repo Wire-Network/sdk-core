@@ -181,6 +181,122 @@ suite('abi binary format (wire-sysio table_id namespace isolation)', function ()
         assert.equal(bytes[bytes.length - 1], 0x00);
     });
 
+    test('encoder rejects table_id outside uint16 range', function () {
+        const tooBig = new ABI({
+            tables: [
+                {
+                    name: 't',
+                    index_type: 'i64',
+                    key_names: [],
+                    key_types: [],
+                    type: 'row',
+                    table_id: 65536,
+                    secondary_indexes: [],
+                },
+            ],
+        });
+        assert.throws(() => encodeAbi(tooBig), /uint16/);
+
+        const negative = new ABI({
+            tables: [
+                {
+                    name: 't',
+                    index_type: 'i64',
+                    key_names: [],
+                    key_types: [],
+                    type: 'row',
+                    table_id: -1,
+                    secondary_indexes: [],
+                },
+            ],
+        });
+        assert.throws(() => encodeAbi(negative), /uint16/);
+    });
+
+    test('encoder rejects secondary_index table_id outside uint16 range', function () {
+        const abi = new ABI({
+            tables: [
+                {
+                    name: 't',
+                    index_type: 'i64',
+                    key_names: [],
+                    key_types: [],
+                    type: 'row',
+                    table_id: 0,
+                    secondary_indexes: [{name: 'bad', key_type: 'name', table_id: 70000}],
+                },
+            ],
+        });
+        assert.throws(() => encodeAbi(abi), /uint16/);
+    });
+
+    test('decoder drains multiple trailing string-typed extensions', function () {
+        // Simulate a future wire-sysio release that appends additional
+        // string-typed extension fields after protobuf_types. The decoder
+        // must not choke on the extra data (forward-compat).
+        const abi = new ABI({
+            version: 'sysio::abi/1.2',
+            tables: [],
+        });
+        const baseBytes = encodeAbi(abi);
+        // Append two extra length-prefixed strings: "foo" and "bar".
+        const extra = new Uint8Array([
+            0x03, 0x66, 0x6f, 0x6f, // "foo"
+            0x03, 0x62, 0x61, 0x72, // "bar"
+        ]);
+        const combined = new Uint8Array(baseBytes.length + extra.length);
+        combined.set(baseBytes, 0);
+        combined.set(extra, baseBytes.length);
+
+        // Should decode cleanly without throwing.
+        const decoded = decodeAbi(combined);
+        assert.equal(decoded.version, 'sysio::abi/1.2');
+        assert.equal(decoded.tables.length, 0);
+    });
+
+    test('golden bytes: minimal single-table ABI matches expected layout', function () {
+        // Fixture asserting byte-for-byte layout matches the C++ wire-sysio
+        // table_def struct in libraries/chain/include/sysio/chain/abi_def.hpp.
+        // Keeping this as a pinned vector catches silent drift in field
+        // order / widths without running an integration build.
+        const abi = new ABI({
+            version: 'v',
+            tables: [
+                {
+                    name: 'T',
+                    index_type: 'i',
+                    key_names: [],
+                    key_types: [],
+                    type: 'r',
+                    table_id: 0x1234,
+                    secondary_indexes: [],
+                },
+            ],
+        });
+        const bytes = encodeAbi(abi);
+        const expected = new Uint8Array([
+            0x01, 0x76, // version "v"
+            0x00, // types
+            0x00, // structs
+            0x00, // actions
+            0x01, // tables.length = 1
+            0x01, 0x54, // table[0].name = "T"
+            0x01, 0x69, // table[0].index_type = "i"
+            0x00, // key_names
+            0x00, // key_types
+            0x01, 0x72, // type = "r"
+            0x34, 0x12, // table_id = 0x1234 LE
+            0x00, // secondary_indexes.length = 0
+            0x00, // ricardian_clauses
+            0x00, // error_messages
+            0x00, // extensions
+            0x00, // variants
+            0x00, // action_results
+            0x00, // protobuf_types = ""
+        ]);
+        assert.deepEqual(Array.from(bytes), Array.from(expected));
+    });
+
     test('multi-table ABI with structs, actions, secondary indexes round-trips', function () {
         const original = new ABI({
             version: 'sysio::abi/1.2',

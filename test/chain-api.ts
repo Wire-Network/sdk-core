@@ -166,10 +166,11 @@ suite('ChainAPI.get_table_rows (wire-sysio KV row shape)', function () {
         assert.equal(result.more, false);
     });
 
-    test('missing payer in new shape coerces to empty name', async function () {
+    test('missing payer in new shape is reported as undefined', async function () {
         // The unified API makes `payer` optional. When show_payer is true
-        // but a row was synthesized without a payer (edge case), the
-        // wrapper should not throw.
+        // but a row was returned without a payer, the wrapper pushes
+        // `undefined` so the absent-payer case is explicit to callers rather
+        // than silently coerced to an empty Name.
         const client = makeClient({
             '/v1/chain/get_table_rows': {
                 rows: [
@@ -194,6 +195,33 @@ suite('ChainAPI.get_table_rows (wire-sysio KV row shape)', function () {
         assert.equal(result.rows.length, 1);
         assert.deepEqual(result.rows[0], {balance: '100.0000 SYS'});
         assert.equal(result.ram_payers!.length, 1);
-        assert.equal(String(result.ram_payers![0]), '');
+        assert.isUndefined(result.ram_payers![0]);
+    });
+
+    test('does not unwrap user table that happens to have scalar key+value fields', async function () {
+        // A user-defined table with struct {key: string, value: uint64} would
+        // collide with the wire-sysio KV shape on field-name alone. Requiring
+        // `key` to be an object (wire KV keys are always composite) avoids
+        // misinterpreting these rows.
+        const client = makeClient({
+            '/v1/chain/get_table_rows': {
+                rows: [
+                    {key: 'some_setting', value: 42},
+                    {key: 'other_setting', value: 7},
+                ],
+                more: false,
+                next_key: '',
+            },
+        });
+
+        const result = await client.v1.chain.get_table_rows({
+            code: 'user.contract',
+            scope: 'user.contract',
+            table: 'settings',
+        });
+
+        assert.equal(result.rows.length, 2);
+        assert.deepEqual(result.rows[0], {key: 'some_setting', value: 42});
+        assert.deepEqual(result.rows[1], {key: 'other_setting', value: 7});
     });
 });

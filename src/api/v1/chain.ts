@@ -328,34 +328,31 @@ export class ChainAPI {
                 lower_bound,
             },
         });
-        let ram_payers: Name[] | undefined;
+        let ram_payers: (Name | undefined)[] | undefined;
 
-        // Wire-sysio PR Wire-Network/wire-sysio#290 unified the get_table_rows
-        // endpoint and changed the per-row shape for KV-backed tables from
-        //   {<decoded struct fields>}                  (legacy)
-        //   {data: <decoded>, payer: <name>}           (legacy + show_payer)
-        // to
-        //   {key, value, payer?}                       (unified, all KV tables)
-        // The new shape is detectable: each row is an object with both `key`
-        // and `value` keys. Unwrap to expose the decoded value (or hex string
-        // when json=false) directly to downstream code, and capture `payer`
-        // into ram_payers when show_payer was requested. This preserves the
-        // legacy shape (plain decoded object, optionally wrapped in
-        // {data, payer}) for callers and stays backward compatible with
-        // EOSIO chains that still emit the old format.
+        // Wire-sysio unified get_table_rows returns KV-backed rows as
+        //   {key: {scope, primary_key, ...}, value: <decoded>, payer?: <name>}
+        // instead of the legacy shape (decoded struct directly, or
+        // {data, payer} when show_payer is set). Detect by shape: each row
+        // must be an object whose `key` is itself an object (the wire-sysio
+        // key is always composite scope+primary_key) and also has a `value`
+        // field. Requiring `key` to be an object avoids misinterpreting user
+        // tables that happen to have scalar fields named `key` and `value`.
         const isWireKvShape =
             Array.isArray(rows) &&
             rows.length > 0 &&
             typeof rows[0] === 'object' &&
             rows[0] !== null &&
             'key' in rows[0] &&
-            'value' in rows[0];
+            'value' in rows[0] &&
+            typeof rows[0].key === 'object' &&
+            rows[0].key !== null;
 
         if (isWireKvShape) {
             if (params.show_payer) {
                 ram_payers = [];
                 rows = rows.map((row: {value: any; payer?: string}) => {
-                    ram_payers!.push(Name.from(row.payer ?? ''));
+                    ram_payers!.push(row.payer ? Name.from(row.payer) : undefined);
                     return row.value;
                 });
             } else {
