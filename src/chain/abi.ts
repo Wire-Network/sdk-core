@@ -99,7 +99,10 @@ export class ABI implements ABISerializableObject {
         const numTables = decoder.readVaruint32();
 
         for (let i = 0; i < numTables; i++) {
-            const name = Name.fromABI(decoder);
+            // name is a length-prefixed string (widened from sysio::name uint64);
+            // table_id (uint16) and secondary_indexes (vector<index_def>) follow.
+            // Binary order matches sysio::chain::table_def.
+            const name = decoder.readString();
             const index_type = decoder.readString();
             const key_names: string[] = [];
             const numKeyNames = decoder.readVaruint32();
@@ -116,7 +119,33 @@ export class ABI implements ABISerializableObject {
             }
 
             const type = decoder.readString();
-            tables.push({name, index_type, key_names, key_types, type});
+            const tidLo = decoder.readByte();
+            const tidHi = decoder.readByte();
+            const table_id = tidLo | (tidHi << 8);
+            const secondary_indexes: ABI.Index[] = [];
+            const numIndexes = decoder.readVaruint32();
+
+            for (let j = 0; j < numIndexes; j++) {
+                const idxName = decoder.readString();
+                const idxKeyType = decoder.readString();
+                const idxLo = decoder.readByte();
+                const idxHi = decoder.readByte();
+                secondary_indexes.push({
+                    name: idxName,
+                    key_type: idxKeyType,
+                    table_id: idxLo | (idxHi << 8),
+                });
+            }
+
+            tables.push({
+                name,
+                index_type,
+                key_names,
+                key_types,
+                type,
+                table_id,
+                secondary_indexes,
+            });
         }
 
         const ricardian_clauses: ABI.Clause[] = [];
@@ -175,6 +204,14 @@ export class ABI implements ABISerializableObject {
             }
         }
 
+        // protobuf_types and any further string-typed trailing extensions:
+        // drain them so a later-appended extension doesn't cause a decode
+        // error. The SDK does not consume these fields. Non-string extensions
+        // added in the future will need explicit handling here.
+        while (decoder.canRead()) {
+            decoder.readString();
+        }
+
         return new ABI({
             version,
             types,
@@ -220,7 +257,7 @@ export class ABI implements ABISerializableObject {
         encoder.writeVaruint32(this.tables.length);
 
         for (const table of this.tables) {
-            Name.from(table.name).toABI(encoder);
+            encoder.writeString(table.name);
             encoder.writeString(table.index_type);
             encoder.writeVaruint32(table.key_names.length);
 
@@ -235,6 +272,23 @@ export class ABI implements ABISerializableObject {
             }
 
             encoder.writeString(table.type);
+            // table_id is uint16 LE; chain side computes DJB2(name) % 65536.
+            // Default to 0 for hand-built tables that omit it.
+            const tid = table.table_id ?? 0;
+            ABI.assertUint16(tid, `table ${table.name} table_id`);
+            encoder.writeByte(tid & 0xff);
+            encoder.writeByte((tid >> 8) & 0xff);
+            const secIdx = table.secondary_indexes ?? [];
+            encoder.writeVaruint32(secIdx.length);
+
+            for (const idx of secIdx) {
+                encoder.writeString(idx.name);
+                encoder.writeString(idx.key_type);
+                const idxTid = idx.table_id ?? 0;
+                ABI.assertUint16(idxTid, `index ${idx.name} table_id`);
+                encoder.writeByte(idxTid & 0xff);
+                encoder.writeByte((idxTid >> 8) & 0xff);
+            }
         }
 
         encoder.writeVaruint32(this.ricardian_clauses.length);
@@ -262,6 +316,18 @@ export class ABI implements ABISerializableObject {
         for (const result of this.action_results) {
             Name.from(result.name).toABI(encoder);
             encoder.writeString(result.result_type);
+        }
+
+        // protobuf_types: forward-compat extension; always written as an empty
+        // string for symmetry with the parser.
+        encoder.writeString('');
+    }
+
+    private static assertUint16(value: number, label: string) {
+        if (!Number.isInteger(value) || value < 0 || value > 0xffff) {
+            throw new Error(
+                `ABI ${label} must be a uint16 in [0, 65535], got ${value}`
+            );
         }
     }
 
@@ -398,12 +464,26 @@ export namespace ABI {
         type: string;
         ricardian_contract: string;
     }
+    // Per-secondary-index metadata embedded in Table. Mirrors
+    // sysio::chain::index_def. table_id is a uint16 DJB2(name) % 65536.
+    export interface Index {
+        name: string;
+        key_type: string;
+        table_id?: number;
+    }
+    // table_def.name is a free-form string (was sysio::name uint64 pre-wire),
+    // so names > 12 chars / containing arbitrary characters are valid.
+    // table_id (uint16) = DJB2(name) % 65536 and secondary_indexes provide
+    // per-table namespace isolation for KV-backed tables. This SDK only
+    // supports the wire-sysio binary format.
     export interface Table {
-        name: NameType;
+        name: string;
         index_type: string;
         key_names: string[];
         key_types: string[];
         type: string;
+        table_id?: number;
+        secondary_indexes?: Index[];
     }
     export interface Clause {
         id: string;

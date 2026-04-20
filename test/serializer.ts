@@ -1081,7 +1081,15 @@ suite('serializer', function () {
             types: [{new_type_name: 'b', type: 'a'}],
             structs: [{base: '', name: 'a', fields: [{name: 'f', type: 'a'}]}],
             tables: [
-                {name: 't', type: 'a', index_type: 'i64', key_names: ['k'], key_types: ['i64']},
+                {
+                    name: 't',
+                    type: 'a',
+                    index_type: 'i64',
+                    key_names: ['k'],
+                    key_types: ['i64'],
+                    table_id: 0,
+                    secondary_indexes: [],
+                },
             ],
             ricardian_clauses: [{id: 'foo', body: 'bar'}],
             variants: [{name: 'v', types: ['a', 'b']}],

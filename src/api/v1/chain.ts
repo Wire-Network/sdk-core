@@ -328,9 +328,38 @@ export class ChainAPI {
                 lower_bound,
             },
         });
-        let ram_payers: Name[] | undefined;
+        let ram_payers: (Name | undefined)[] | undefined;
 
-        if (params.show_payer) {
+        // Wire-sysio unified get_table_rows returns KV-backed rows as
+        //   {key: {scope, primary_key, ...}, value: <decoded>, payer?: <name>}
+        // instead of the legacy shape (decoded struct directly, or
+        // {data, payer} when show_payer is set). Detect by shape: each row
+        // must be an object whose `key` is itself an object (the wire-sysio
+        // key is always composite scope+primary_key) and also has a `value`
+        // field. Requiring `key` to be an object avoids misinterpreting user
+        // tables that happen to have scalar fields named `key` and `value`.
+        const isWireKvShape =
+            Array.isArray(rows) &&
+            rows.length > 0 &&
+            typeof rows[0] === 'object' &&
+            rows[0] !== null &&
+            'key' in rows[0] &&
+            'value' in rows[0] &&
+            typeof rows[0].key === 'object' &&
+            rows[0].key !== null;
+
+        if (isWireKvShape) {
+            if (params.show_payer) {
+                ram_payers = [];
+                rows = rows.map((row: {value: any; payer?: string}) => {
+                    ram_payers!.push(row.payer ? Name.from(row.payer) : undefined);
+                    return row.value;
+                });
+            } else {
+                rows = rows.map((row: {value: any}) => row.value);
+            }
+        } else if (params.show_payer) {
+            // Legacy show_payer wrapper: {data, payer}
             ram_payers = [];
             rows = rows.map(({data, payer}) => {
                 ram_payers!.push(Name.from(payer));

@@ -591,7 +591,12 @@ export interface GetTableRowsParamsTyped<Index = TableIndexType | string, Row = 
 export interface GetTableRowsResponse<Index = TableIndexType, Row = any> {
     rows: Row[];
     more: boolean;
-    ram_payers?: Name[];
+    /**
+     * Populated when `show_payer` is set. Each entry aligns with `rows[i]`.
+     * The entry is `undefined` when the chain returned a row without a payer
+     * (wire-sysio KV shape makes `payer` optional).
+     */
+    ram_payers?: (Name | undefined)[];
     next_key?: Index;
 }
 
