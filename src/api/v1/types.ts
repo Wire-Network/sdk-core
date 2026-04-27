@@ -304,7 +304,7 @@ export class GetBlockQc extends Struct {
 
 @Struct.type('get_block_response_receipt')
 export class GetBlockResponseTransactionReceipt extends Struct {
-    @Struct.field(TransactionReceipt) declare receipt: TransactionReceipt;
+    @Struct.field('uint32', {array: true}) declare cpu_usage_us: UInt32[];
     @Struct.field(TrxVariant) declare trx: TrxVariant;
     // NOTE: Sometimes the trx field is a raw {array: []} object containing the ID. 
     // If so, do as follows to convert to hex trxId:

@@ -26,7 +26,6 @@ import {
     SignedTransaction,
     Struct,
     Transaction,
-    TransactionReceipt,
 } from '$lib';
 
 const jungle = new APIClient({
@@ -316,7 +315,7 @@ suite('api v1', function () {
         assert.equal(Number(block.block_num), 124472078);
         assert.equal(block.transactions.length, 8);
         block.transactions.forEach((tx) => {
-            assert.ok(tx.receipt instanceof TransactionReceipt);
+            assert.ok(Array.isArray(tx.cpu_usage_us));
             assert.ok(tx.trx.id instanceof Checksum256);
         });
         const tx = block.transactions[5].trx.transaction;
@@ -352,7 +351,7 @@ suite('api v1', function () {
         const block = await eos.v1.chain.get_block(124472078);
         assert.equal(Number(block.block_num), 124472078);
         block.transactions.forEach((tx) => {
-            assert.equal(tx.receipt instanceof TransactionReceipt, true);
+            assert.equal(Array.isArray(tx.cpu_usage_us), true);
         });
     });
 
@@ -365,7 +364,7 @@ suite('api v1', function () {
         }
     });
 
-    test('chain get_block decodes nested transaction receipt shape', function () {
+    test('chain get_block decodes Wire transaction receipt shape', function () {
         const transactionId = '1'.repeat(64);
         const block = Serializer.decode({
             type: API.v1.GetBlockResponse,
@@ -382,11 +381,7 @@ suite('api v1', function () {
                 producer_signatures: [],
                 transactions: [
                     {
-                        receipt: {
-                            status: 'executed',
-                            cpu_usage_us: 10,
-                            net_usage_words: 2,
-                        },
+                        cpu_usage_us: [1570],
                         trx: transactionId,
                     },
                 ],
@@ -396,8 +391,7 @@ suite('api v1', function () {
             },
         });
 
-        assert.instanceOf(block.transactions[0].receipt, TransactionReceipt);
-        assert.equal(block.transactions[0].receipt.status, 'executed');
+        assert.equal(Number(block.transactions[0].cpu_usage_us[0]), 1570);
         assert.equal(String(block.transactions[0].id), transactionId);
     });
 
