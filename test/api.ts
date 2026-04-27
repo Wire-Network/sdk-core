@@ -316,7 +316,7 @@ suite('api v1', function () {
         assert.equal(Number(block.block_num), 124472078);
         assert.equal(block.transactions.length, 8);
         block.transactions.forEach((tx) => {
-            assert.ok(tx instanceof TransactionReceipt);
+            assert.ok(tx.receipt instanceof TransactionReceipt);
             assert.ok(tx.trx.id instanceof Checksum256);
         });
         const tx = block.transactions[5].trx.transaction;
@@ -352,7 +352,7 @@ suite('api v1', function () {
         const block = await eos.v1.chain.get_block(124472078);
         assert.equal(Number(block.block_num), 124472078);
         block.transactions.forEach((tx) => {
-            assert.equal(tx instanceof TransactionReceipt, true);
+            assert.equal(tx.receipt instanceof TransactionReceipt, true);
         });
     });
 
@@ -363,6 +363,42 @@ suite('api v1', function () {
         for (const tx of block.transactions) {
             assert.instanceOf(tx.trx.transaction, Transaction);
         }
+    });
+
+    test('chain get_block decodes nested transaction receipt shape', function () {
+        const transactionId = '1'.repeat(64);
+        const block = Serializer.decode({
+            type: API.v1.GetBlockResponse,
+            object: {
+                timestamp: '2024-01-01T00:00:00.000',
+                producer: 'eosio',
+                previous: '0'.repeat(64),
+                transaction_mroot: '0'.repeat(64),
+                finality_mroot: '0'.repeat(64),
+                qc_claim: {
+                    block_num: 1,
+                    is_strong_qc: false,
+                },
+                producer_signatures: [],
+                transactions: [
+                    {
+                        receipt: {
+                            status: 'executed',
+                            cpu_usage_us: 10,
+                            net_usage_words: 2,
+                        },
+                        trx: transactionId,
+                    },
+                ],
+                id: '0'.repeat(64),
+                block_num: 1,
+                ref_block_prefix: 0,
+            },
+        });
+
+        assert.instanceOf(block.transactions[0].receipt, TransactionReceipt);
+        assert.equal(block.transactions[0].receipt.status, 'executed');
+        assert.equal(String(block.transactions[0].id), transactionId);
     });
 
     test('chain get_currency_balance', async function () {
